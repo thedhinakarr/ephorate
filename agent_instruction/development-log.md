@@ -27,3 +27,4 @@
 - Added a minimal `.gitignore` for OS metadata, local environments, credentials, and Python caches. Reviewed the current text, archive contents, and PDF text/metadata for concrete secrets or private customer content; none found. Preserved both source PDFs, the downloaded archive, and its extracted reference files.
 - Connected canonical root README/landing-page GitHub links to the personal repository. Domain purchase and application/website deployment remain unperformed; M0 implementation remains pending.
 - User subsequently specified public visibility. Changed the new repository to public and verified `owner.type=User`, `visibility=public`, and `private=false` before the initial upload.
+- Renamed the local checkout directory to `ephorate` and pushed all 16 project files to personal GitHub on `main` (initial commit `327053a`). Verified public visibility, personal ownership, matching local/remote commit, and a clean working tree.
