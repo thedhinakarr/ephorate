@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ephorate: merge on evidence</title>
+<meta name="description" content="Ephorate gives every pull request a measured probability of causing an incident, calibrated on your own history. You set the threshold; reviewers see only the changes that need them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B2430'/%3E%3Cg fill='%23EEF0EC'%3E%3Crect x='5' y='8' width='3' height='16'/%3E%3Crect x='10' y='8' width='3' height='16'/%3E%3Crect x='15' y='8' width='3' height='16'/%3E%3Crect x='20' y='8' width='3' height='16'/%3E%3C/g%3E%3Crect x='25' y='8' width='3' height='16' fill='%23C8554D'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Besley:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --marble: #EEF0EC;
+    --panel: #F8F9F6;
+    --iron: #1B2430;
+    --soft: #4A5560;
+    --stone: #C9CEC7;
+    --crimson: #9E2B25;
+    --aegean: #1F5673;
+    --display: 'Besley', Georgia, 'Times New Roman', serif;
+    --text: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --edge: clamp(20px, 5vw, 56px);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--marble);
+    color: var(--iron);
+    font-family: var(--text);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--aegean);
+    outline-offset: 3px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--edge); }
+
+  /* header */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 22px; padding-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-family: var(--display); font-size: 22px; font-weight: 500; }
+  .mark { display: flex; gap: 3px; height: 20px; }
+  .mark span { width: 4px; background: var(--iron); }
+  .mark span:last-child { background: var(--crimson); }
+  .nav { display: flex; gap: 28px; align-items: center; font-size: 15px; }
+  .nav a { text-decoration: none; color: var(--soft); }
+  .nav a:hover { color: var(--iron); text-decoration: underline; text-underline-offset: 4px; }
+  @media (max-width: 720px) { .nav a.opt { display: none; } }
+
+  /* buttons */
+  .btn { display: inline-block; padding: 13px 22px; border: 1.5px solid var(--iron); border-radius: 4px; font-weight: 600; font-size: 16px; text-decoration: none; }
+  .btn-solid { background: var(--iron); color: var(--marble); }
+  .btn-solid:hover { background: #2B3848; }
+  .btn-line:hover { background: var(--panel); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 72px); align-items: center; padding-top: clamp(32px, 6vw, 72px); padding-bottom: clamp(56px, 8vw, 104px); }
+  .hero h1 { font-family: var(--display); font-weight: 500; font-size: clamp(2.5rem, 5.4vw, 4.4rem); line-height: 1.04; letter-spacing: -0.02em; margin: 0 0 28px; }
+  .hero p.lead { font-size: clamp(1.05rem, 1.5vw, 1.22rem); color: var(--soft); max-width: 34em; margin: 0 0 32px; }
+  .hero .stage { font-size: 15px; color: var(--soft); margin: 20px 0 0; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+
+  /* instrument */
+  .instrument { background: var(--panel); border: 1.5px solid var(--iron); padding: clamp(18px, 2.4vw, 28px); }
+  .instrument h2 { font-family: var(--text); font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+  .queue { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+  .queue i { display: block; aspect-ratio: 1; border: 2px solid var(--crimson); background: transparent; transition: background-color 140ms, border-color 140ms; }
+  .queue i.clear { background: var(--aegean); border-color: var(--aegean); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 20px; font-size: 14px; color: var(--soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { width: 13px; height: 13px; display: inline-block; border: 2px solid var(--crimson); }
+  .legend i.clear { background: var(--aegean); border-color: var(--aegean); }
+  .dial label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+  .dial output { font-family: var(--display); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .dial input[type=range] { width: 100%; accent-color: var(--iron); margin: 0; height: 28px; }
+  .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid var(--stone); margin-top: 18px; padding-top: 16px; }
+  .readout b { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 3.4vw, 2.7rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .readout span { display: block; font-size: 14px; color: var(--soft); margin-top: 6px; }
+  .readout .to-review b { color: var(--crimson); }
+  .readout .to-merge b { color: var(--aegean); }
+  .instrument .fine { font-size: 14px; color: var(--soft); margin: 16px 0 0; }
+
+  /* sections */
+  section.band { border-top: 1px solid var(--stone); padding: clamp(56px, 8vw, 104px) 0; }
+  .band h2.title { font-family: var(--display); font-weight: 500; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.12; letter-spacing: -0.01em; margin: 0 0 20px; max-width: 20em; }
+  .band p.intro { color: var(--soft); max-width: 38em; margin: 0 0 40px; font-size: 1.08rem; }
+
+  /* problem */
+  .figures { font-family: var(--display); font-weight: 400; font-size: clamp(1.6rem, 3.6vw, 3rem); line-height: 1.2; letter-spacing: -0.015em; margin: 0 0 32px; max-width: 22em; }
+  .figures b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .source { font-size: 14px; color: var(--soft); max-width: 46em; }
+
+  /* steps */
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.steps li { counter-increment: step; display: grid; grid-template-columns: 64px minmax(0, 300px) minmax(0, 1fr); gap: 8px 32px; padding: 24px 0; border-top: 1px solid var(--stone); }
+  ol.steps li:last-child { border-bottom: 1px solid var(--stone); }
+  ol.steps li::before { content: counter(step); font-family: var(--display); font-size: 2rem; line-height: 1; color: var(--aegean); }
+  ol.steps h3 { font-size: 1.15rem; font-weight: 600; margin: 4px 0 0; }
+  ol.steps p { margin: 4px 0 0; color: var(--soft); max-width: 36em; }
+  @media (max-width: 760px) { ol.steps li { grid-template-columns: 40px 1fr; } ol.steps p { grid-column: 2; } }
+
+  /* check + policy */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+  @media (max-width: 860px) { .pair { grid-template-columns: 1fr; } }
+  .pair > div, .hero > div { min-width: 0; }
+  .pair h3 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
+  .check { background: var(--panel); border: 1.5px solid var(--iron); }
+  .check header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--stone); font-weight: 600; }
+  .check header svg { flex: none; }
+  .check dl { margin: 0; padding: 6px 20px; }
+  .check dl div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--stone); }
+  .check dl div:last-child { border-bottom: 0; }
+  .check dt { color: var(--soft); }
+  .check dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .check footer { padding: 14px 20px; border-top: 1px solid var(--stone); font-size: 14px; color: var(--soft); }
+  pre.policy { margin: 0; background: var(--iron); color: #DCE3E0; padding: 22px 24px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
+  pre.policy .c { color: #93A3AD; }
+  .pair p.under { font-size: 15px; color: var(--soft); margin: 14px 0 0; }
+
+  /* table */
+  .scroll { overflow-x: auto; }
+  table.diff { width: 100%; min-width: 640px; border-collapse: collapse; }
+  table.diff th, table.diff td { text-align: left; vertical-align: top; padding: 16px 20px 16px 0; border-bottom: 1px solid var(--stone); }
+  table.diff thead th { font-weight: 600; border-bottom: 1.5px solid var(--iron); }
+  table.diff tbody th { font-weight: 600; width: 24%; }
+  table.diff td { color: var(--soft); width: 38%; }
+  table.diff td.ours { color: var(--iron); }
+
+  /* commitments */
+  .commit { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 clamp(32px, 5vw, 72px); }
+  .commit div { border-top: 1.5px solid var(--iron); padding: 20px 0 36px; }
+  .commit h3 { font-size: 1.15rem; font-weight: 600; margin: 0 0 8px; }
+  .commit p { margin: 0; color: var(--soft); max-width: 32em; }
+  @media (max-width: 760px) { .commit { grid-template-columns: 1fr; } }
+
+  /* status */
+  ul.status { list-style: none; margin: 0; padding: 0; max-width: 760px; }
+  ul.status li { display: flex; justify-content: space-between; gap: 24px; padding: 16px 0; border-top: 1px solid var(--stone); }
+  ul.status li:last-child { border-bottom: 1px solid var(--stone); }
+  ul.status .state { flex: none; font-size: 14px; font-weight: 600; padding: 3px 10px; border: 1.5px solid var(--stone); color: var(--soft); align-self: flex-start; }
+  ul.status .state.now { border-color: var(--aegean); color: var(--aegean); }
+  ul.status p { margin: 2px 0 0; color: var(--soft); font-size: 15px; }
+
+  /* faq */
+  .faq { max-width: 760px; }
+  .faq details { border-top: 1px solid var(--stone); }
+  .faq details:last-child { border-bottom: 1px solid var(--stone); }
+  .faq summary { cursor: pointer; padding: 18px 0; font-weight: 600; font-size: 1.08rem; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-family: var(--display); font-size: 1.4rem; line-height: 1; color: var(--soft); }
+  .faq details[open] summary::after { content: "\2212"; }
+  .faq details p { margin: 0 0 20px; color: var(--soft); max-width: 40em; }
+
+  /* closing */
+  .closing { background: var(--iron); color: var(--marble); }
+  .closing .wrap { padding-top: clamp(56px, 8vw, 96px); padding-bottom: clamp(56px, 8vw, 96px); }
+  .closing h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.1; margin: 0 0 16px; max-width: 16em; }
+  .closing p { color: #B9C3C8; max-width: 36em; margin: 0 0 28px; }
+  .closing .btn { border-color: var(--marble); }
+  .closing .btn-solid { background: var(--marble); color: var(--iron); }
+  .closing .btn-solid:hover { background: #fff; }
+  .closing .btn-line:hover { background: #2B3848; }
+  footer.end { background: var(--iron); color: #B9C3C8; border-top: 1px solid #36424F; font-size: 14px; }
+  footer.end .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; padding-top: 22px; padding-bottom: 28px; }
+  footer.end a { color: #DCE3E0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .queue i { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="Ephorate home">
+    <span class="mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+    Ephorate
+  </a>
+  <nav class="nav" aria-label="Main">
+    <a class="opt" href="#how">How it works</a>
+    <a class="opt" href="#difference">What’s different</a>
+    <a class="opt" href="#status">Status</a>
+    <a href="https://github.com/thedhinakarr/ephorate">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <div class="wrap hero">
+    <div>
+      <h1>Review what needs a reviewer. Merge the rest on evidence.</h1>
+      <p class="lead">Ephorate gives every pull request a measured probability of causing an incident, calibrated on your own history. You set the threshold. Changes below it merge after checks, and the rest go to the engineer who knows the code.</p>
+      <div class="actions">
+        <a class="btn btn-solid" href="mailto:hello@example.com?subject=Ephorate%20early%20access">Request early access</a>
+        <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+      </div>
+      <p class="stage">In development. The backtest engine comes first, so you can test it on your past changes before anything touches a live pull request.</p>
+    </div>
+
+    <div class="instrument">
+      <h2 id="queue-title">100 open pull requests</h2>
+      <div class="queue" id="queue" role="img" aria-labelledby="queue-title queue-summary"></div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="clear"></i>Merges after checks</span>
+        <span><i></i>Goes to a reviewer</span>
+      </div>
+      <div class="dial">
+        <label for="threshold">Your risk threshold <output id="threshold-out" for="threshold">0.5%</output></label>
+        <input type="range" id="threshold" min="0.1" max="3" step="0.1" value="0.5" aria-describedby="queue-summary">
+      </div>
+      <div class="readout" id="queue-summary" aria-live="polite">
+        <div class="to-merge"><b id="n-clear">0</b><span>merge after checks</span></div>
+        <div class="to-review"><b id="n-review">0</b><span>go to a reviewer</span></div>
+      </div>
+      <p class="fine">Average incident risk of a cleared change: <strong id="avg-risk">0%</strong>. Example data; your numbers come from your own history.</p>
+    </div>
+  </div>
+
+  <section class="band" id="problem">
+    <div class="wrap">
+      <p class="figures">Coding agents raised code output by <b>44%</b>. Finished work rose <b>14%</b>. The wait for approval grew <b>56%</b>.</p>
+      <p class="intro">Writing code got fast. Checking it did not. Every change still queues for the few people who know that part of the codebase, so more code piles up and little more ships.</p>
+      <p class="source">Figures are estimated effects of AI coding agents across 655 firms, from Chen and Stratton, “Artificial Intelligence in the Firm: Bottlenecks in Software Production” (Harvard University, 2026).</p>
+    </div>
+  </section>
+
+  <section class="band" id="how">
+    <div class="wrap">
+      <h2 class="title">How it works</h2>
+      <p class="intro">Ephorate sits on top of the AI reviewer and CI you already use. It adds one thing they lack: a risk number checked against what happened afterwards.</p>
+      <ol class="steps">
+        <li><h3>Learn from your history</h3><p>It reads your past changes and traces each incident, revert and hotfix back to the change that caused it.</p></li>
+        <li><h3>Score each pull request</h3><p>Size, the files touched, who knows them and how those files have behaved before become a probability, calibrated so that 1% means 1%.</p></li>
+        <li><h3>Apply your policy</h3><p>A short file in your repository sets the threshold and names the paths that always need a person.</p></li>
+        <li><h3>Route the decision</h3><p>Changes under the threshold merge once tests and review checks pass. The others go to the reviewer most familiar with the code.</p></li>
+        <li><h3>Track what happens</h3><p>Every merge is followed. When something breaks, the link feeds the next model refresh and shows up in your escape rate.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band" id="product">
+    <div class="wrap">
+      <h2 class="title">One check on the pull request, one file in the repo</h2>
+      <p class="intro">Engineers see a number, a comparison and a decision. Leads set the rules in a file that is versioned and reviewed like any other code.</p>
+      <div class="pair">
+        <div>
+          <h3>The check</h3>
+          <div class="check">
+            <header>
+              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" fill="#1F5673"/><path d="M5.5 11.5l3.6 3.6 7.4-8" fill="none" stroke="#EEF0EC" stroke-width="2.2"/></svg>
+              Ephorate: cleared to merge
+            </header>
+            <dl>
+              <div><dt>Incident risk for this change</dt><dd>0.3%</dd></div>
+              <div><dt>Reviewed changes like it</dt><dd>2.1%</dd></div>
+              <div><dt>Your threshold</dt><dd>0.5%</dd></div>
+              <div><dt>Main factors</dt><dd>Small, well-tested, author owns these files</dd></div>
+            </dl>
+            <footer>Example values. Each decision is stored with the inputs that produced it.</footer>
+          </div>
+        </div>
+        <div>
+          <h3>The policy</h3>
+<pre class="policy"><span class="c"># .ephorate/policy.yml</span>
+threshold: 0.005          <span class="c"># 0.5% incident risk</span>
+
+always_review:
+  - "services/payments/**"
+  - "infra/terraform/**"
+  - "**/migrations/**"
+
+required_checks:
+  - ci/tests
+  - ai-review
+
+mode: shadow              <span class="c"># report, don't enforce</span></pre>
+          <p class="under">A missing or invalid policy sends every change to a reviewer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="difference">
+    <div class="wrap">
+      <h2 class="title">A measurement where others give a label</h2>
+      <p class="intro">Many review tools now tag a change as low, medium or high risk. Ephorate does a different job.</p>
+      <div class="scroll">
+        <table class="diff">
+          <thead>
+            <tr><th scope="col"><span style="position:absolute;left:-9999px">Question</span></th><th scope="col">Risk label from a review tool</th><th scope="col">Ephorate</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">What you get</th><td>Low, medium or high</td><td class="ours">A probability, with a baseline to compare it to</td></tr>
+            <tr><th scope="row">Where it comes from</th><td>A model’s reading of the diff</td><td class="ours">Your own record of changes and incidents</td></tr>
+            <tr><th scope="row">Checked against outcomes</th><td>Not reported</td><td class="ours">Calibration and escape rate, tracked continuously</td></tr>
+            <tr><th scope="row">Explaining a decision</th><td>A written rationale</td><td class="ours">The stored inputs, model version and policy that produced it</td></tr>
+            <tr><th scope="row">Review comments on the code</th><td>Yes</td><td class="ours">No. Keep the reviewer you have</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="commitments">
+    <div class="wrap">
+      <h2 class="title">Built to be trusted with the merge button</h2>
+      <p class="intro">Four rules shape the design.</p>
+      <div class="commit">
+        <div><h3>Read-only by default</h3><p>Ephorate reads history and incidents and writes one check. It does not merge, approve or push unless you switch that on.</p></div>
+        <div><h3>Shadow mode first</h3><p>It starts by reporting what it would decide. You compare that with what happened before letting it gate anything.</p></div>
+        <div><h3>The language model never decides</h3><p>A language model may describe a diff as one input. The decision comes from a calibrated statistical model and your policy file.</p></div>
+        <div><h3>Your code is not kept</h3><p>Source is processed in memory to extract signals. What is stored is the signals, file paths and commit identifiers.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="status">
+    <div class="wrap">
+      <h2 class="title">Where it stands</h2>
+      <p class="intro">Ephorate is not generally available yet. The parts ship in this order, and the first one decides whether the rest are worth building.</p>
+      <ul class="status">
+        <li><div><strong>Backtest engine</strong><p>History ingestion, incident linking, the calibrated model and a report on your past changes.</p></div><span class="state now">In development</span></li>
+        <li><div><strong>GitHub App in shadow mode</strong><p>Live scores as a check on each pull request.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Policy and reviewer routing</strong><p>The policy file, required paths and reviewer suggestions.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Outcome dashboard</strong><p>Escape rate, calibration and a what-if view for thresholds.</p></div><span class="state">Planned</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="faq">
+    <div class="wrap">
+      <h2 class="title">Questions</h2>
+      <div class="faq">
+        <details><summary>Does Ephorate replace our AI code reviewer?</summary><p>No. It doesn’t comment on code. It uses your reviewer’s result as one required check and decides whether a person also needs to look.</p></details>
+        <details><summary>Will it merge code without asking?</summary><p>Not unless you turn that on. It starts in shadow mode, where it only reports the decision it would make.</p></details>
+        <details><summary>What access does it need?</summary><p>Read access to your Git history and pull requests, and to incident records from tools such as PagerDuty or Datadog. It writes a check and nothing else.</p></details>
+        <details><summary>We don’t have many incidents. Does it still work?</summary><p>Reverts, hotfixes and bug-fix commits count as outcomes too, so most active repositories have enough to learn from. With less history the estimates are wider, and the report says so.</p></details>
+        <details><summary>Who is it for?</summary><p>Engineering teams where coding agents have filled the review queue faster than senior engineers can clear it.</p></details>
+        <details><summary>Where does the name come from?</summary><p>The ephorate was Sparta’s board of five elected overseers, who could hold even the kings to account. It is pronounced EFF-er-it.</p></details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="closing">
+  <div class="wrap">
+    <h2>See what your own history says first.</h2>
+    <p>The backtest scores your past changes and compares the result with what happened. If the lowest-risk changes weren’t safer, you’ll know before installing anything.</p>
+    <div class="actions">
+      <a class="btn btn-solid" href="mailto:hello@example.com?subject=Ephorate%20early%20access">Request early access</a>
+      <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+    </div>
+  </div>
+</div>
+<footer class="end">
+  <div class="wrap">
+    <span>Ephorate</span>
+    <span>Contact: <a href="mailto:hello@example.com">hello@example.com</a></span>
+    <a href="https://github.com/thedhinakarr/ephorate">github.com/thedhinakarr/ephorate</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Deterministic example data: 100 pull requests with a skewed spread of incident risk (in %).
+  var seed = 20261114;
+  function rand() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+  var risks = [];
+  for (var i = 0; i < 100; i++) { var u = rand(); risks.push(0.05 * Math.pow(120, u * u)); }
+
+  var queue = document.getElementById('queue');
+  var cells = risks.map(function () { var c = document.createElement('i'); queue.appendChild(c); return c; });
+
+  var slider = document.getElementById('threshold');
+  var out = document.getElementById('threshold-out');
+  var nClear = document.getElementById('n-clear');
+  var nReview = document.getElementById('n-review');
+  var avg = document.getElementById('avg-risk');
+
+  function update() {
+    var t = parseFloat(slider.value), clear = 0, sum = 0;
+    risks.forEach(function (r, i) {
+      var ok = r < t;
+      cells[i].className = ok ? 'clear' : '';
+      if (ok) { clear++; sum += r; }
+    });
+    out.textContent = t.toFixed(1) + '%';
+    nClear.textContent = clear;
+    nReview.textContent = 100 - clear;
+    avg.textContent = clear ? (sum / clear).toFixed(2) + '%' : 'none cleared';
+  }
+  slider.addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>
