@@ -4,7 +4,6 @@
 
 Ephorate gives every pull request a measured probability of causing a production incident, calibrated on your own history of changes and incidents. You set a threshold. Changes below it merge after automated checks; the rest go to the engineer who knows the code.
 
-Planned domain: `ephorate.dev` (to purchase; not deployed).
 
 Repository: [thedhinakarr/ephorate](https://github.com/thedhinakarr/ephorate) (public, personal account).
 
