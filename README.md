@@ -1,140 +1,73 @@
 # Ephorate
 
-**Review what needs a reviewer. Merge the rest on evidence.**
+**Find out where code review will break as your agents write more code, and what would fix it.**
 
-Ephorate gives every pull request a measured probability of causing a production incident, calibrated on your own history of changes and incidents. You set a threshold. Changes below it merge after automated checks; the rest go to the engineer who knows the code.
+Ephorate is a planned review capacity simulator: a Python CLI and GitHub Action that will use GitHub history to map demand and shared reviewer capacity, test forecasts against the past, and compare possible fixes.
 
+**Nothing in the new product is built yet.** This repository contains the plan, first handoff, research references, and a static landing page. There is no working collector, capacity model, report generator, or Action. The interrupted skeleton for the former product was removed from the active tree before this re-plan.
 
-Repository: [thedhinakarr/ephorate](https://github.com/thedhinakarr/ephorate) (public, personal account).
+[Public personal repository](https://github.com/thedhinakarr/ephorate).
 
-> **Status:** planning and a static marketing prototype. Milestone 0 has an implementation handoff; the backend and backtest engine have not been built. Nothing here is ready for production use yet. See [Status](#status).
+## Why this direction
 
-## Why
+The motivating research describes a code-review bottleneck after coding-agent adoption: more work arrives, while review depends strongly on people familiar with the codebase. The proposed product asks whether a team's own history can forecast where that constraint will bind and whether a proposed fix would help.
 
-AI coding agents have made writing code much faster. Reviewing it has not sped up, so review is now where work waits. A 2026 Harvard study of 655 firms estimated that coding agents raised lines of code by 44% while finished work rose 14%, and the time from review submission to approval grew 56%.
+The paper does not validate this product. GitHub timestamps measure elapsed workflow time, not reviewer working hours; historical throughput is an effective-capacity proxy. The backtest is the credibility gate. Claims that no competitor offers this capability remain a market hypothesis, not a verified fact.
 
-Many review tools now tag a change as low, medium or high risk by reading the diff. Ephorate does a different job: it produces a probability, checks that probability against what happened afterwards, and lets a team decide how much risk it will accept without a human review.
+## Planned workflow
 
-## How it works
+1. **Read history.** Collect one repository's metadata for a default 12-month reporting window, with qualification warm-up and the initial open queue. Detect known coding agents, keep dependency bots separate, and disclose undetected agents.
+2. **Map and measure.** Assign paths to areas, identify historically qualified reviewers, and measure arrivals, familiarity, waiting, elapsed review time, shared load, and human review coverage.
+3. **Check against the past.** Fit on the first nine months and predict the last three. Compare waiting predictions with the previous quarter's observations, and check coverage and backlog too.
+4. **Run scenarios.** Increase agent arrivals and show per-area waiting, backlog, demand relative to capacity, and pressure associated with lower review coverage. Every forecast includes its backtest error and limits.
+5. **Test fixes.** Compare reviewer eligibility, explicitly assumed review exemptions, agent PR limits, and workload reallocations. Show spillovers, deferred work, and coverage tradeoffs.
+6. **Write artifacts.** Produce self-contained HTML, versioned JSON, and separate suggested `CODEOWNERS` changes. The tool will never apply them.
 
-```mermaid
-flowchart LR
-    A[Pull request opens] --> B[Risk is scored]
-    B --> C{Below your threshold?}
-    C -- yes --> D[Merge after checks]
-    C -- no --> E[Route to the right reviewer]
-    D --> F[Track outcomes]
-    E --> F
-    F -. incidents, reverts, hotfixes .-> B
-```
+## Read-only and private by design
 
-1. **Learn from history.** Past changes are loaded and each incident, revert and hotfix is traced back to the change that caused it.
-2. **Score each pull request.** Size, files touched, ownership and file history become a probability, calibrated so that 1% means 1%.
-3. **Apply the policy.** A file in the repository sets the threshold and the paths that always need a person.
-4. **Route the decision.** Below the threshold, the change merges once required checks pass. Above it, a reviewer familiar with the code is suggested.
-5. **Track what happens.** Every merge is followed, and outcomes feed the next model refresh.
+- No changes to GitHub settings, PRs, reviews, labels, or ownership files.
+- No Ephorate server, telemetry, or transfer to a third-party analysis service. Metadata stays in the operator's local store or CI workspace/artifacts; local execution necessarily stores metadata on the operator's machine.
+- No source files are collected. The sole approved file-content exception is `CODEOWNERS` configuration. Incidental text or code in REST metadata responses is discarded in memory and never retained or forwarded.
+- No LLM is required or planned.
+- Tokens come from the environment and never appear in reports or logs.
 
-## What it looks like
+## This is not a people-performance tool
 
-A check on the pull request (example values):
+The report describes the review system so a lead can change it. Default views are per area and hide identities. Optional person detail exists only to show shared workload or name a possible reviewer; one `--people hide` option suppresses it across all outputs. Ephorate will not rank people, label them slow, or grade performance.
 
-| | |
-|---|---|
-| Incident risk for this change | 0.3% |
-| Reviewed changes like it | 2.1% |
-| Your threshold | 0.5% |
-| Decision | Cleared to merge after checks |
+GitHub does not provide job levels. Seniority requires an explicit team-supplied mapping. Otherwise any relevant measure is labeled **tenure in this repository**, with observation-window limits shown.
 
-A policy file in the repository:
+## Where it stands
 
-```yaml
-# .ephorate/policy.yml
-threshold: 0.005          # 0.5% incident risk
+| Milestone | Deliverable | State |
+|---|---|---|
+| 0 | Installable CLI, SQLite initialization, tests and CI | Handoff ready; not implemented |
+| 1 | Resumable GitHub metadata collector | Planned |
+| 2 | Area mapping and auditable measurements | Planned |
+| 3 | Discrete-event model and time-ordered backtest | Planned; mandatory owner gate |
+| 4 | Scenarios and proposed fixes | Gated on M3 and owner approval |
+| 5 | HTML/JSON reports and GitHub Action | Planned |
+| 6 | Approved, identity-masked public examples | Planned |
 
-always_review:
-  - "services/payments/**"
-  - "infra/terraform/**"
-  - "**/migrations/**"
+The local store will be **SQLite**, using Python's standard library. M0 will need no runtime dependencies. No FastAPI, database server, analytics service, workflow cluster, cloud infrastructure, or hosted application is part of this plan.
 
-required_checks:
-  - ci/tests
-  - ai-review
+## Start here
 
-mode: shadow              # report decisions without enforcing them
-```
+- [Standing rules](AGENTS.md)
+- [Master plan](PROJECT_PLAN.md)
+- [Data dictionary](docs/DATA_DICTIONARY.md)
+- [Recorded decisions](docs/DECISIONS.md)
+- [First implementation handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-0-review-capacity.md)
+- [Repository index](agent_instruction/README.md) and [development log](agent_instruction/development-log.md)
 
-## Design rules
+The owner must assign new M0 before implementation begins. Setup instructions will be added when it is implemented and checked.
 
-- **Read-only by default.** Ephorate reads history and incidents and writes one check. It does not merge, approve or push unless that is switched on.
-- **Shadow mode first.** It starts by reporting what it would decide, so the decisions can be compared with outcomes before it gates anything.
-- **The language model never decides.** A language model may tag a diff as one input. The decision comes from a calibrated statistical model plus the policy file, so every decision can be reproduced.
-- **Source code is not stored.** Code is processed in memory to extract signals. Signals, file paths and commit identifiers are what is kept.
+The former plan, handoff, and pitch are preserved in [the archive](archive/2026-11-incident-risk/ARCHIVE.md). The downloaded `ephorate/` starter and `ephorate.zip` remain historical references, not an implementation root or publishing instruction.
 
-## Architecture
+## Research and licensing
 
-```
-Sources                Core                          Surfaces
--------                ----                          --------
-GitHub (PRs, commits)  Ingest and link incidents     Pull request check
-CI results             Signal extraction             Reviewer routing in Slack
-PagerDuty incidents    Calibrated risk model         Escape-rate dashboard
-Datadog alerts         Policy engine                 Audit log
-```
+Chen, Fiona, and James Stratton. *Artificial Intelligence in the Firm: Bottlenecks in Software Production*. The [repository copy](jellyfish.pdf) is dated 9 November 2026; the [authors' current copy](https://fion.ac/jellyfish.pdf) was dated 14 November when checked on 15 November. See the [author's page](https://fion.ac/) for attribution.
 
-## Tech stack
+The owner chose to keep this third-party PDF in the public repository. Removing it from the current tree later would not remove it from Git history. Inclusion does not assert redistribution rights or put it under a future project license.
 
-| Layer | Choice |
-|---|---|
-| Backend | Python, FastAPI |
-| Jobs and workflows | Temporal |
-| State | PostgreSQL |
-| Event analytics | ClickHouse |
-| Code parsing | tree-sitter |
-| Incident linking | SZZ-style blame tracing, revert and hotfix detection |
-| Risk model | LightGBM with isotonic calibration |
-| Policy | YAML file in the repository, GitHub Checks API |
-| Dashboard | Next.js, TypeScript |
-| Infrastructure | AWS, Terraform, Docker, GitHub Actions |
-
-## Status
-
-| Part | State |
-|---|---|
-| Project skeleton: local API, infrastructure, checks and tests | Planned; handoff ready |
-| Backtest engine: history ingestion, incident linking, calibrated model, report | Planned |
-| GitHub App in shadow mode | Planned |
-| Policy file and reviewer routing | Planned |
-| Outcome tracking and dashboard | Planned |
-| Deployment | Planned |
-
-The backtest comes first on purpose. It answers one question on historical data: did the changes the model calls low risk really cause fewer problems? The live service is only worth building if the answer is yes.
-
-## Repository
-
-```
-AGENTS.md           standing rules for coding agents working in this repo
-PROJECT_PLAN.md     milestones, acceptance criteria and deployment plan
-index.html          static marketing prototype; not deployed
-agent_instruction/  research index, implementation handoffs and development log
-docs/               planned engineering decisions, backtest report and runbook
-packages/           connectors, linking, signals, model, policy
-services/           API and workers
-apps/dashboard/     the dashboard
-infra/terraform/    infrastructure
-```
-
-Setup and run commands are added with the first milestone. Until then, `PROJECT_PLAN.md` is the place to start.
-
-The downloaded `ephorate.zip` and extracted `ephorate/` folder are reference copies of the marketing starter. Implement from this repository root and follow its `AGENTS.md` and `PROJECT_PLAN.md`; the downloaded plan's GitHub Pages layout is not the selected engineering layout. See [the download review](agent_instruction/README.md#downloaded-marketing-starter) before publishing or importing those files.
-
-## The name
-
-The ephorate was Sparta's board of five elected overseers, who could hold even the kings to account. It is pronounced EFF-er-it.
-
-## Reference
-
-Chen, F. and Stratton, J. (2026). *Artificial Intelligence in the Firm: Bottlenecks in Software Production.* Harvard University.
-
-## License
-
-Not yet chosen.
+The project's license has not been chosen. Public visibility alone is not an open-source license.

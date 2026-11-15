@@ -1,279 +1,207 @@
-# Ephorate: build and deploy plan
+# Ephorate: review capacity simulator plan
 
-This plan is written for a coding agent (Codex) that will build the project with a human owner available for decisions and credentials. Read `AGENTS.md` first for the standing rules.
+Replanned 2026-11-15. This supersedes the incident-risk direction in `archive/2026-11-incident-risk/`. Read `AGENTS.md` first. This session produces planning documents and a landing-page revision only; new M0 needs a separate owner assignment.
 
-Product name: **Ephorate**. Project identifier: `ephorate`. Intended domain to purchase: `ephorate.dev` (not yet verified as registered or owned).
+## 1. Goal and credibility gate
 
-## 1. Goal and order of work
+**Find out where code review will break as your agents write more code, and what would fix it.**
 
-Build a service that scores each pull request with a calibrated probability of causing a production incident, applies a team-defined threshold, and tracks outcomes.
+Build a Python CLI and GitHub Action that read one repository's GitHub history, measure area-level demand and shared review capacity, backtest forecasts, and simulate interventions. Outputs are local/CI HTML and JSON artifacts plus optional ownership suggestions. There is no hosted service.
 
-The work is ordered so that the riskiest assumption is tested first. That assumption is: *changes the model calls low risk really did cause fewer incidents.* Milestones 1 to 3 produce an offline backtest that answers this with no product, no GitHub App and no deployment. Only if the backtest shows signal is the live service (Milestones 4 to 7) worth building. Do not skip ahead.
+The former direction needed unavailable customer incident data and competed with products identified in owner-supplied research. These observations explain the pivot; an exhaustive competitive gap has not been independently established. The new model's usefulness is unproven. M3 must test it before scenarios are built.
 
-### Not in scope for this plan
+The supplied Chen/Stratton paper motivates the problem, not this product's accuracy. Its submission-to-merge increase is 56.1%; waiting/active-review effects use a commented subset and cannot be added to reconstruct the overall effect. Its firm/repository familiarity measure differs from the area-level adaptation below. The owner's 48%-to-21% coverage case is unsourced here; never use those figures as fitted parameters or verified marketing evidence.
 
-- Writing review comments on code quality. Customers already have AI reviewers; this product sits on top of them.
-- Merging or approving pull requests automatically. The live service ships in shadow mode (it reports what it would decide). Enforcement is a later decision for the human owner.
-- GitLab, Bitbucket and other incident tools. GitHub, PagerDuty and Datadog only, behind interfaces that allow more later.
-- Multi-region, single-tenant and on-premise deployment.
+## 2. Architecture and scope
 
-## 2. Architecture
-
-```
-Sources                Core                          Surfaces
--------                ----                          --------
-GitHub (PRs, commits)  Ingest and link incidents     Pull request check run
-CI results             Signal extraction             Slack reviewer routing
-PagerDuty incidents    Calibrated risk model         Escape-rate dashboard
-Datadog alerts         Policy engine                 Audit log
-```
-
-Flow for one pull request:
-
-1. A webhook reports that a pull request opened or changed.
-2. Signals are extracted from the diff, the repository history and the author's and reviewers' familiarity with the touched files.
-3. The model returns a probability. A calibration layer makes that probability match observed incident rates.
-4. The policy file in the customer's repository decides: below threshold, or above.
-5. A check run is posted with the probability, a comparison baseline and the decision. Above-threshold changes get a suggested reviewer.
-6. After merge, later incidents, reverts and hotfixes are linked back to the change. These labels feed the next model refresh.
-
-## 3. Tech stack
-
-| Layer | Choice | Reason |
-|---|---|---|
-| Backend | Python, FastAPI | Same language as the modelling code |
-| Jobs and workflows | Temporal | Long, retryable ingestion and backfill jobs |
-| State | PostgreSQL | Tenants, repos, pull requests, decisions, audit log |
-| Event analytics | ClickHouse | Fast aggregation for the escape-rate dashboard |
-| Code parsing | tree-sitter | Language-aware diff features |
-| Incident linking | SZZ-style blame tracing, revert and hotfix detection | Standard way to tie a fix to the change that introduced the bug |
-| Risk model | LightGBM, with isotonic calibration | Works on small tabular data; decisions can be explained |
-| LLM features | One provider behind an interface | Semantic tags for a diff; used as model inputs only |
-| Policy | YAML file in the customer repo | Versioned and reviewable alongside the code |
-| GitHub integration | GitHub App, Checks API, webhooks | Least-privilege, per-installation access |
-| Dashboard | Next.js, TypeScript | Standard, easy to host |
-| Infrastructure | AWS, Terraform, Docker | Standard path to a SOC 2 audit later |
-| CI/CD | GitHub Actions | Lint, test, build, deploy |
-
-Confirm current versions and maintenance status of each library before pinning. If one is unsuitable, propose a replacement in `docs/DECISIONS.md` and ask before switching.
-
-## 4. Repository layout
-
-```
-/
-  AGENTS.md
-  PROJECT_PLAN.md
-  README.md
-  Makefile
-  docs/
-    DECISIONS.md           choices made where the plan left room
-    BACKTEST_REPORT.md     written at the end of Milestone 3
-    RUNBOOK.md             written in Milestone 7
-  packages/
-    connectors/            GitHub, PagerDuty, Datadog clients (all mockable)
-    linking/               incident-to-change linking
-    signals/               feature extraction
-    model/                 training, calibration, evaluation
-    policy/                policy file schema and evaluation
-  services/
-    api/                   FastAPI app: webhooks, check runs, dashboard API
-    worker/                Temporal workers: backfill, scoring, refresh
-  apps/
-    dashboard/             Next.js
-  infra/
-    terraform/
-  tests/
-    fixtures/              small public-repo samples only
+```text
+GitHub REST metadata + CODEOWNERS configuration
+              |
+       resumable collector
+              |
+    local SQLite metadata store
+              |
+   areas + as-of measurements
+              |
+   observed-throughput simulation
+              |
+  chronological backtest / owner gate
+              |
+  scenarios + system interventions
+              |
+  self-contained HTML + JSON + suggested ownership diff
 ```
 
-## 5. Data model (core tables)
+| Choice | Decision |
+|---|---|
+| Runtime | Python; stdlib argparse and sqlite3 in M0 |
+| Package | One installable `src/ephorate/` package and `ephorate` command |
+| State | SQLite: transactional updates/checkpoints without a server |
+| Simulation | Small discrete-event engine using a priority queue; no closed-form queue formula as the forecast model |
+| Configuration | TOML; built-in tomllib; one versioned agent-identity rules file |
+| Reports | Self-contained HTML and versioned JSON; no remote report assets or telemetry |
+| Delivery | Local CLI, then GitHub Action with read permissions and artifact upload |
 
-- `tenant`, `installation`, `repository`
-- `change`: one row per merged commit or pull request, with author, files, timestamps
-- `incident`: one row per incident, with source, start time, severity, linked service
-- `change_incident_link`: which change is believed to have caused which incident, with the linking method and a confidence
-- `feature_snapshot`: the exact feature values used for a score, so any decision can be reproduced
-- `score`: probability, model version, calibration version
-- `decision`: threshold applied, outcome, policy file hash
-- `audit_event`: append-only log of every decision and every configuration change
+No FastAPI, PostgreSQL, ClickHouse, Temporal, Terraform, AWS, incident connector, LLM, PR check writer, auto-merge, policy enforcement, or hosted dashboard. Adding hosting or an LLM requires an owner decision. Preserve the existing marketing design; it is separate from the future report.
 
-Never update or delete rows in `feature_snapshot`, `score`, `decision` or `audit_event`. They are the evidence the product is selling.
+Planned paths are created only when their milestones need them:
+
+```text
+AGENTS.md, PROJECT_PLAN.md, README.md, index.html
+src/ephorate/             CLI, store, client, collector, measures, model, reports
+tests/                   unit/contract tests; sanitized metadata fixtures
+docs/                    decisions, dictionary, backtest report
+agent_instruction/       index, log, handoffs, actual implementation/results
+action.yml               introduced in M5
+archive/2026-11-incident-risk/  historical plan, handoff and pitch
+```
+
+The public personal repository is `thedhinakarr/ephorate`. `ephorate.dev` is the intended purchase domain, not a deployed endpoint. The root plan is authoritative; the nested `ephorate/` starter and ZIP remain historical references.
+
+## 3. Data and measurement contract
+
+[DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) defines timestamps, cohorts, formulas, provenance, and missing-value behavior. Use its words consistently in code and reports. All time is UTC. Default reporting covers the previous 12 calendar months ending at an explicit exclusive cutoff. Collect 90 additional warm-up days for the default qualification lookback, plus PRs already open at the reporting start. Warm-up does not enter headline totals.
+
+- **Area:** a named path set. Each changed file has one winning area: explicit configured rule, CODEOWNERS last match, then top-level directory/root fallback. A PR's changed-file shares across areas sum to one; touching multiple areas does not multiply its workload.
+- **Qualified reviewer:** at event time, a non-bot person with the configured count of distinct qualifying PRs in the preceding lookback. Defaults: 90 days and one PR. Qualification comes from merged authorship or submitted reviews touching the area, strictly before the measured event. CODEOWNERS alone does not qualify anyone.
+- **Familiarity:** review-event familiarity uses prior qualification and fractional area weights. Its random baseline assigns that reviewer uniformly to non-self-authored PRs opened in the same repository/month. This is an area-level adaptation, not the paper's firm-wide baseline. Same-month future candidates are for descriptive measurement only, never predictive features.
+- **Waiting:** opening, or first ready-for-review for an initially draft PR, to first eligible non-author human review/comment. Bots and unpublished pending reviews do not count. No response means censored, not zero.
+- **Active review time:** elapsed first-human-interaction-to-merge latency. It includes rework, idle time, and merge delay; it is not measured person-hours.
+- **Human review coverage:** share of merged PRs with a submitted formal human review before merge. Report comment-only engagement coverage separately. Missing records do not prove nobody inspected code.
+- **Effective review capacity:** observed response throughput under historical conditions, with one reviewer budget shared across areas. It is not independently measured maximum ability or attention.
+- **Utilization/review ceiling:** arrivals divided by modeled capacity, and the arrival rate where modeled utilization reaches one. Show gross and human-routed demand separately. Unbounded growth assumes persistent overload without bypass, abandonment, or adaptation; finite simulations report their actual horizon.
+- **Agent-authored:** detectable coding-agent account/trailer evidence. Dependency bots, no detected agent evidence, and incomplete/unknown attribution remain separate. One configurable identity file controls recognition. Dependency bots are excluded from headline human/agent comparisons but remain background demand when they use shared review capacity.
+
+The dictionary covers zero denominators, deleted actors, draft/reopen events, pending/dismissed reviews, partial collections, path overlap, multi-area accounting, seniority mappings, and historical snapshot limits. Default person detail is hidden; the single future `--people hide|show` option applies across all outputs.
+
+## 4. Collector and privacy boundary
+
+Use GitHub REST with `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2026-03-10`, and environment-only authentication. All GitHub operations are `GET`, through one mockable client. Never store credentials, raw response caches, PR titles/bodies, review/comment text, commit messages, patches, or diff hunks.
+
+Required endpoints cover repository metadata; updated-order PR listing and detail; issue timeline; submitted reviews; inline/conversation comments; changed paths; and PR commits for attribution. The endpoint/retained-field map is in the dictionary. Parse recognized co-author trailers transiently and retain classification/rule provenance, not message text or emails.
+
+REST metadata responses include incidental snippets/free text and offer no field-projection switch. Allowlist metadata immediately in memory; discard everything else before persistence, logs, error reporting, fixtures, or reports. Never request raw/blob/diff/patch/archive payloads.
+
+**Owner-approved CODEOWNERS exception:** inspect a pinned commit's tree metadata for the first existing CODEOWNERS path in `.github/`, root, then `docs/`. Validate that selected entry as a regular file; reject symlinks/submodules and files at or above 3 MB. An unsafe/unusable selected path triggers non-CODEOWNERS area fallbacks, not a lower-precedence CODEOWNERS file. Fetch only the verified path through the Contents API, without following download URLs. Retain parsed rules/provenance. Current ownership is not historical qualification; freeze the area taxonomy for evaluation and disclose final-diff approximations.
+
+Collection must paginate, deduplicate stable IDs, checkpoint sanitized state transactionally, honor `Retry-After`/rate-reset, retry transient failures with bounded backoff, and emit visible partial status when interrupted. Validate pagination and redirect destinations before forwarding credentials. Never advance a complete-run watermark while child collections are incomplete.
+
+PR listing has no `since`: use updated-descending discovery with overlap and conditional requests, restarting discovery safely after interruption rather than trusting old page positions. Incremental means new **and changed** records, not zero requests. Use ETags to avoid unchanged child downloads. Run a full reconciliation every seven successful daily incremental runs to address missed edits/deletions, and record that cost.
+
+Respect the 3,000-files and 250-commits PR endpoint caps. Mark oversized PRs incomplete; never label missing attribution human or derive exact area weights from partial files. Current/final PR files are not historical opening-time paths. Initial-queue and warm-up completeness are separate flags.
+
+The workflow token is repository-scoped and has a limited quota; an initial year may need several resumable CI runs. Own-repository workflows request only `contents: read` and `pull-requests: read`. Another private repository requires separately authorized read credentials. Data stays on the operator's machine/runner and in authorized GitHub artifacts, not an Ephorate backend. No literal promise that a local CLI's data remains inside a GitHub account.
+
+## 5. Model and interventions
+
+Use a discrete-event model of **first human response and elapsed completion**, not inferred labor time. Explain the model on one page in each report:
+
+1. Each PR is one global job with fractional area attribution, origin time, and actor class. Preserve open jobs at the train/test boundary.
+2. Bootstrap contiguous observed training-week blocks for arrivals and time-of-week response opportunities. An opportunity is one unique first-human-response token. If responders tie, assign the token to one of them using fixed-seed uniform selection; retain tie provenance. Never let fractional descriptive allocations release multiple jobs. Each person's weekly opportunity budget is shared across all areas. This is an observed-activity proxy for availability.
+3. Freeze the qualification snapshot and area taxonomy at forecast cutoff. At a review opportunity, choose the oldest queued PR touching an area for which that reviewer is qualified. This represents initial response, not comprehensive review sufficiency over every path; disclose cross-area limitations.
+4. While a job awaits response, model separate competing exits for merge without engagement and closure without merge. Estimate empirical age-dependent exit hazards from training risk sets, conditioned on pre-arrival pressure; censor still-open observations rather than treating them as exits. A terminal exit removes a queued job and records its outcome. A formal-review label alone never bypasses the first-response queue: comment-only engagement still consumes an opportunity.
+5. After a response, use empirical competing merge/closed-unmerged timing from training, retaining right-censored jobs. Post-response latency does not monopolize the reviewer. Fit formal-review probability by pre-arrival pressure and engagement/exit route. Reviews outside an open-ready interval can count toward formal coverage without ending this waiting measure: preserve that separate participation flag for carry-in jobs and model its observed frequency for new jobs, without creating response tokens. Thus formal coverage, first response, and terminal exits remain distinct. Use supported area distributions or a disclosed repository fallback. Pressure uses backlog/capacity knowable before arrival. These relationships are observational, not proof that pressure causes bypass; never import the unsourced case-study percentages.
+6. Report coverage, all arrivals, queue growth, terminal exits and unfinished work together. Add a sensitivity run holding bypass hazards and formal-review probabilities at their baseline-pressure values so reduced waits caused by bypass are visible. Exempted or deferred work never disappears from demand accounting.
+7. Use fixed seeds and repeated draws; report fitted window, draw count, model/config versions, support, assumptions, and held-out errors next to each supported forecast. Abstain for insufficient/out-of-support data.
+
+Before M3 fitting, its handoff must freeze training-only pressure/age bins, support and fallback rules, simulation horizon, seeds and aggregation. The dictionary defines M2's descriptive first-response throughput; M3 fits the empirical opportunity and exit processes from it and lifecycle records. No test-quarter tuning. Failure to identify a useful model is a failed credibility gate, not permission to invent availability or exclude poorly predicted areas.
+
+M4 configuration represents `qualify_reviewer`, `exempt_class`, `agent_wip_limit`, `agent_size_limit`, and `reallocate_review_capacity`. Eligibility alone adds no capacity. A person absent from response history requires explicit assumed capacity and an unsupported-new-person warning. The first size-limit version **defers** oversized work rather than pretending it is split; show that upstream backlog. WIP limits also preserve deferred demand. Exemptions show reduced coverage and imply no safety decision. Reallocation conserves budgets and shows cross-area spillovers.
+
+Rank system interventions by waiting/backlog effect only within stated coverage/assumption constraints. Show uncertainty and coverage changes alongside effects. Named candidates are opt-in and unranked; no person-performance score or leaderboard.
 
 ## 6. Milestones
 
-Each milestone lists what to build, what a person must supply, and the acceptance criteria. A milestone is done only when every criterion is met.
+### M0 - Skeleton
 
-### Milestone 0: Project skeleton
+Build only an installable CLI package, safe local SQLite initialization, tests, lint/type checks, wheel build, and CI. Follow the [new M0 handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-0-review-capacity.md). No collector, simulation, report, server, container, or Action distribution yet.
 
-Build:
-- Repository layout above, `Makefile` targets named in `AGENTS.md`, Docker Compose for local PostgreSQL, ClickHouse and Temporal.
-- CI workflow running lint, type-check and tests on every pull request.
-- Empty packages with one passing test each.
+Acceptance: locked install/lint/test/build pass from a clean clone; install the built wheel separately and invoke its CLI outside the checkout; help/version create no application stores, output or configuration; SQLite initialization is repeatable and rejects foreign/corrupt/unsupported stores without modification; CI needs no token or services. README shows actual commands. Report evidence to the owner before M1 assignment.
 
-Done when:
-- `make install && make lint && make test` pass on a clean clone.
-- `make dev` starts the API and it answers a health check.
+### M1 - Collect history
 
-### Milestone 1: History ingestion and incident linking (offline)
+Implement one-repository collection for the explicit reporting/warm-up window and initial queue. Store only normalized metadata, observed cutoffs/SHAs, attribution rules, completeness, and transactional checkpoint/ETag state. Add only the HTTP client actually required, after current documentation checks.
 
-This is the foundation for the backtest. It works from a local git clone, with no GitHub App.
+Acceptance:
+- Collect a reporting year for initial public target `pytest-dev/pytest`, retaining warm-up and initial-queue evidence or declaring them incomplete. If its current volume/API behavior is unsuitable, document evidence before proposing a replacement.
+- An interrupted/resumed fixture run produces the same normalized rows as uninterrupted collection, without duplicate or missing children.
+- A second run fetches new/changed records and conditionally validates unchanged data; no blanket year-long re-download.
+- Sanitized public fixtures and synthetic edge cases cover pagination, quotas, retries, redaction, pending reviews, endpoint caps, denied CODEOWNERS paths/symlinks, and partial status. Unit tests never contact GitHub.
+- Live validation records dates, counts, requests, quota/partial status and resume evidence, never raw responses. Report to the owner.
 
-Build:
-- A loader that walks a repository's history and writes `change` rows.
-- Linking that labels which changes later needed fixing:
-  - commits that revert an earlier commit;
-  - bug-fix commits (identified by issue references and commit message patterns), traced back with SZZ-style blame to the commits that introduced the fixed lines;
-  - hotfixes: a fix to the same files within a short window after a merge.
-- A second linking path that accepts an incident export (CSV or JSON with timestamp, service and optional fix commit) and links incidents to changes. This is what design partners will supply.
-- Each link stores its method and a confidence.
+### M2 - Map and measure
 
-Why two paths: without partner data, reverts and bug fixes in public repositories are the best available stand-in for incidents. They are a proxy, so say so clearly in every report.
+Implement the dictionary: area rules, temporal qualification, familiarity/adapted baseline, waiting/elapsed latency, review-load concentration, formal/engagement coverage, observed response throughput, detectable authorship, and optional supplied seniority versus observed repository tenure.
 
-Done when:
-- Running the loader on at least three large public repositories with good issue hygiene produces `change` and `change_incident_link` tables. Choose the repositories and record why in `docs/DECISIONS.md`.
-- A manual spot check of 50 links per repository is written up with the observed precision. If precision is below roughly 70%, improve the linking before moving on.
-- Unit tests cover revert detection, blame tracing and the incident import, using small synthetic repositories built in the test.
+Acceptance:
+- All defined measures exist for the target with denominators, lineage, completeness, and no fabricated values.
+- Hand-check 30 sampled PRs covering drafts, human/agent/dependency-bot classes, multi-area changes, comment-only interactions, and censored/unreviewed cases. Record absent strata and expected/computed waiting, coverage and familiarity. No undisclosed LLM ground truth.
+- Tests prove future events cannot confer earlier qualification; area/reviewer accounting conserves totals; bot/author/pending events cannot falsely end waiting; missing responses remain censored; hiding people suppresses identities across outputs.
+- Explicitly report final-diff/current-ownership approximation and incomplete-history limits. Report to the owner.
 
-### Milestone 2: Signals
+### M3 - Capacity model and backtest
 
-Build feature extraction for a change, using only information available at the moment the change was proposed:
-- Size and shape: lines added and removed, files touched, directories spanned, share of test files.
-- History: how often the touched files changed recently, how often they were involved in past linked incidents.
-- Ownership and familiarity: share of the touched lines last written by the author; how many past changes the author has in those files.
-- Structure (tree-sitter): kinds of constructs changed, such as function signatures, error handling, configuration, migrations.
-- Path categories: authentication, payments, infrastructure, schema, dependencies, documentation, tests. Make the mapping configurable.
-- Timing: day and hour, proximity to a release.
-- LLM tags (optional, behind a flag): a small fixed set of labels describing the intent of the diff. Cache results. The pipeline must work with this flag off.
+Implement discrete-event simulation with bootstrap-arrival forecasting as the primary gate. Fit on reporting months 1-9 and predict months 10-12, preserving the boundary queue and censoring. Truncate all training responses, merges, lifecycle/exit events and qualifications at the training cutoff; a training-origin PR resolved during the test period is censored during fitting. Replay using realized test arrivals is a separately labeled diagnostic, never the primary forecast result. The naive baseline predicts each area's next-quarter mean waiting as its preceding-quarter mean, using the same cohort definition and a disclosed repository fallback for zero prior support.
 
-Done when:
-- Features are produced for every change from Milestone 1 and stored in `feature_snapshot`.
-- A test proves there is no leakage: recomputing features for a change after later commits are added gives identical values.
-- A data dictionary in `docs/` lists each feature and how it is computed.
+The primary waiting estimand is mean elapsed waiting among first responses observed by the quarter-end cutoff, grouped by the PR's arrival week and fractional area. Apply the same quarter-relative observation horizon to the preceding-quarter baseline and simulated quarter. This is conditional on an observed response, not an uncensored population mean; report response, unengaged-exit and unresolved shares alongside it. Carry-in jobs affect capacity/backlog but are reported separately from new-arrival waiting. Freeze this cohort, censoring treatment and bin eligibility before fitting. Forecast and actual aggregates share week/area bins, not synthetic/real PR identities; a bin lacking simulated response support is unavailable, never silently omitted from the coverage report.
 
-### Milestone 3: Model, calibration and backtest report
+Evaluate at least three public repositories. Candidate pool: `pytest-dev/pytest`, `django/django`, `astral-sh/ruff`, `pallets/flask`, `fastapi/fastapi`, `pandas-dev/pandas`. Select three using measured **training-period** PR volume and detectable agent-share spread; repository names do not establish usage. If the pool lacks meaningful spread, report this and propose expansion rather than falsely passing that criterion.
 
-Build:
-- Training with LightGBM on a time-based split: train on the earliest portion, calibrate on the next, test on the most recent.
-- Isotonic calibration fitted on the calibration window only.
-- Evaluation on the test window:
-  - reliability curve and calibration error;
-  - incident rate by risk band (lowest third, middle third, highest third);
-  - the share of changes that could skip review at several thresholds, and the incident rate among them;
-  - comparison against two simple baselines: change size alone, and path category alone.
-- `make backtest REPO=...` runs the whole pipeline end to end and writes `docs/BACKTEST_REPORT.md` with tables and charts.
+Acceptance:
+- `docs/BACKTEST_REPORT.md` records each repository/window, context, model, assumptions, support, missingness and reproducibility inputs.
+- Compare weekly per-area mean waiting against the baseline on the same eligible test bins, weighted by actual observed-response PR equivalents. Report weighted MAE in hours per repository, per-area errors, median/p90 diagnostics, unresolved/censored shares, and a paired calendar-week block-bootstrap interval for the MAE difference. Keep counts and unavailable bins visible so censoring cannot improve appearances.
+- Separately report backlog error and formal-coverage error/calibration, with prior-quarter constant baselines. Do not accept short waits obtained by hiding bypass or unfinished PRs.
+- Freeze support/abstention rules before test inspection and report every area's outcome. Fixed seeds/data/config versions reproduce results within a recorded tolerance.
+- Honest failure is valid: if waiting does not beat the naive baseline, or coverage/backlog accuracy is inadequate, say so and propose changes. No guaranteed positive result.
 
-Done when:
-- The report exists for each test repository and states plainly whether the lowest-risk third of changes had a lower rate of linked problems than the overall rate, and by how much, with confidence intervals.
-- The model beats both simple baselines, or the report says it does not.
-- Results are reproducible from a fixed seed.
+**Stop after M3 and report to the owner. Do not begin M4 without explicit go-ahead**, even after positive results. Evaluation is not approval to publish named public examples on the website.
 
-**Stop here and report to the human owner.** The decision to continue depends on these results. If the model shows no useful separation, propose what to change (better linking, more signals) and do not start Milestone 4.
+### M4 - Scenarios and fixes
 
-**HUMAN:** review the backtest report; arrange design-partner data if available; decide go or no-go.
+Add agent-arrival multipliers and the intervention types in section 5. Keep human, dependency-bot and unknown background demand explicit. Every scenario carries horizon, baseline comparison, held-out errors, uncertainty, coverage, deferred work and unsupported assumptions.
 
-### Milestone 4: GitHub App and live scoring in shadow mode
+Acceptance: each intervention is a small validated TOML entry. A fixed-seed synthetic test shows that a newly qualified reviewer **with spare capacity** reduces waiting in an overloaded area. Other tests prove qualification cannot duplicate capacity, reallocation conserves budgets, caps preserve deferred demand, and exemptions visibly change coverage. Rank interventions, never individuals. Report to the owner.
 
-**HUMAN:** register a GitHub App with these permissions and supply its ID, private key and webhook secret: read access to contents, pull requests, metadata and checks history; write access to checks only. Subscribe to pull request, push and check suite events.
+### M5 - Report and GitHub Action
 
-Build:
-- Webhook endpoint with signature verification and idempotent handling of redelivered events.
-- On installation, a Temporal workflow that backfills history for the selected repositories using Milestones 1 and 2, then trains a first model for that tenant. Respect API rate limits.
-- On each pull request event, a scoring workflow: extract signals, score, calibrate, evaluate policy, store `feature_snapshot`, `score` and `decision`, and post a check run.
-- The check run shows the probability, a baseline for comparison, the threshold, the decision the policy would make, and the top contributing factors in plain language. Its conclusion is always neutral in shadow mode so it never blocks a merge.
-- Tenant isolation: every query is scoped by tenant, with a test that tries to read across tenants and fails.
+Create a self-contained HTML report, versioned JSON, and separate suggested CODEOWNERS diff when needed. Reports make no external requests. `--people hide|show` defaults to `hide` and governs HTML, JSON, suggestions, logs and filenames; hidden-person mode suppresses named suggestions.
 
-Done when:
-- Installing the app on a test organisation backfills a repository and produces check runs on new pull requests within a couple of minutes.
-- Replaying the same webhook twice produces one decision, not two.
-- All GitHub calls go through the connector module and are mocked in tests.
+Provide an Action usable in a few lines, with read-only GitHub permissions and allowlisted artifact upload. Document resumable sanitized-store caching, retention and access. Never upload a workspace glob, secrets, or raw responses. Partial collections remain visibly partial.
 
-### Milestone 5: Policy engine and reviewer routing
+Acceptance: this repo's CI runs the Action against a chosen public target and uploads HTML/JSON; a rerun resumes/reuses metadata; offline browser QA checks layout/accessibility; tests verify no external report requests, no identities in hide mode, traceable HTML/JSON agreement, and suggestion artifacts that leave CODEOWNERS unchanged. Report to the owner.
 
-Build:
-- A policy file read from the customer's default branch, `.ephorate/policy.yml`, with: the risk threshold, paths that always require a human, paths that never count, and required checks that must pass first.
-- Schema validation with clear error messages posted in the check run when the file is invalid. An invalid or missing policy means every change is treated as above threshold.
-- Reviewer suggestion for above-threshold changes, ranked by familiarity with the touched files and recent review load.
-- Optional Slack notification to the suggested reviewer. **HUMAN:** create the Slack app and supply credentials.
-- Every policy evaluation records the hash of the policy file in `decision`.
+### M6 - Public examples
 
-Done when:
-- Changing the threshold in the policy file changes decisions on the next pull request, and the audit log shows the old and new policy hashes.
-- A path listed as always requiring a human is never marked below threshold, proven by a test.
+Prepare proposed targets and masked reports. **The owner approves the repository list before website publication.** Describe systems, not people. Remove/mask names, handles, named suggestions, identity-bearing URLs, filenames and metadata. Show model error/support prominently.
 
-### Milestone 6: Outcome tracking and dashboard
+Acceptance: approval recorded; masking independently checked; every published example links its window, definition/model versions, errors and limits; website links resolve and artifacts work offline. Public source data does not waive this review. Report to the owner.
 
-Build:
-- Connectors for PagerDuty and Datadog that import incidents on a schedule. **HUMAN:** supply read-only API keys for a test account.
-- Continuous linking of new incidents, reverts and hotfixes to merged changes.
-- A scheduled model refresh that retrains and recalibrates, versions the model, and only promotes a new version if it is at least as well calibrated as the current one on recent data.
-- Dashboard pages:
-  - escape rate: linked incidents among changes scored below threshold versus above, over time;
-  - calibration: predicted versus observed rates;
-  - throughput: share of changes below threshold, and estimated review hours that represents;
-  - decision log: searchable, with the stored feature values for each decision;
-  - what-if: how the numbers would change at a different threshold.
-- Sign-in through GitHub, limited to members of the installed organisation.
+## 7. Validation and risk register
 
-Done when:
-- An incident imported from the test account is linked to a change and appears in the escape-rate view.
-- A model refresh that is worse than the current version is rejected, proven by a test.
-- Every number on the dashboard can be traced to rows in the database.
+Unit/contract tests cover parsing, SQLite safety, time ordering, qualification, conservation, partial data, censoring, simulation determinism and hidden identities. Use sanitized public metadata and small synthetic cases. Live runs are separately invoked validation, never unit-test dependencies. Every milestone records commands, exit statuses, counts and missing checks; no invented passes or completion records before work exists.
 
-### Milestone 7: Deployment
+| Risk | Response |
+|---|---|
+| Incumbents hold data and could add forecasting | Move quickly with inspectable methods; do not claim uniqueness or an open-source license before verification/selection |
+| Holidays, reorganizations, departures and irregular behavior break forecasts | Held-out evaluation, uncertainty/support limits, and invalidation after structural changes |
+| Open-source patterns do not transfer to companies | Describe repository context; do not generalize public results to companies |
+| Agent detection undercounts usage | Display rules, unknowns and undercount caveats with every share |
+| API quotas, pagination, edits and historical caps | Transactional incremental checkpoints, reconciliation, visible partial states and realistic multi-run backfills |
+| Metadata cannot identify true labor capacity | Effective-throughput language, conserved budgets, disclosed assumptions; no staffing/performance claims |
+| Pressure and coverage are confounded | Observational wording, separate coverage validation and fixed-coverage sensitivity |
+| Current paths/ownership leak future state | Frozen taxonomy, as-of qualification, observation provenance, disclosed historical approximation |
+| Sparse areas | Abstain instead of fabricated forecasts; expose support and fallback scope |
+| Public examples expose or grade people | Default hiding, no person rankings, owner-approved publication and masking checks |
 
-Prepare everything; a person runs the first production deploy.
+## 8. Owner decisions and sources
 
-Build:
-- Dockerfiles for the API, the worker and the dashboard.
-- Terraform for: a VPC with private subnets; container hosting for API and workers (ECS on Fargate is the default suggestion); managed PostgreSQL with encryption and automated backups; a load balancer with TLS; a secrets store; log and metric collection; least-privilege IAM roles.
-- ClickHouse and Temporal: use the managed cloud offerings by default to avoid operating them. Record the choice and cost estimate in `docs/DECISIONS.md` and ask before provisioning.
-- Two environments, staging and production, from the same Terraform with different variables.
-- GitHub Actions pipeline: on merge to main, build images, run migrations against staging, deploy to staging, run smoke tests. Production deploy is a manual approval step.
-- Database migrations that are backward compatible for one release, so a rollback is safe.
-- `docs/RUNBOOK.md`: how to deploy, roll back, rotate the GitHub App key, restore the database, and what each alert means.
-- Alerts for: webhook failures, scoring latency, workflow backlog, failed model refresh, and error rate.
+Already decided: Ephorate name, intended `ephorate.dev` domain, personal/public GitHub, CODEOWNERS-only content exception, and retaining `jellyfish.pdf` publicly. Pending at their gates: new M0 assignment, M3 continuation, license, public-example list, and domain/hosting purchases. No history rewrite or PDF removal is authorized.
 
-**HUMAN:** provide the AWS account and a deploy role; approve the cost estimate; purchase `ephorate.dev`, configure DNS and obtain certificates; create the production Ephorate GitHub App; run and approve the first production deploy.
+Current source checks (2026-11-15):
 
-Done when:
-- A fresh staging environment can be created from an empty AWS account with `terraform apply` plus the documented manual steps.
-- A deploy followed by a rollback leaves the service healthy.
-- Smoke tests in staging cover: webhook received, pull request scored, check run posted, dashboard loads.
+- Supplied study: repository `jellyfish.pdf`, 9 November version. [Authors' copy](https://fion.ac/jellyfish.pdf) now has a 14 November version; preserve attribution/version differences.
+- [REST versioning](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [PR endpoints/caps](https://docs.github.com/en/rest/pulls/pulls), [review comments](https://docs.github.com/en/rest/pulls/comments), [timeline](https://docs.github.com/en/rest/issues/timeline).
+- [CODEOWNERS precedence/size](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), [Contents behavior](https://docs.github.com/en/rest/repos/contents).
+- [REST best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api), [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api), [workflow-token scope](https://docs.github.com/en/actions/concepts/security/github_token).
 
-## 7. Security and privacy requirements
-
-These apply from Milestone 4 onward and are part of every acceptance check.
-
-- Source code is processed in memory for feature extraction and not stored. Store features, file paths and commit identifiers. If storing code ever becomes necessary, stop and ask.
-- If LLM tagging is enabled for a tenant, record that fact in the tenant's settings and send only the diff, never the wider repository. It is off by default.
-- Encrypt data at rest and in transit. GitHub App private keys and customer API keys live only in the secrets store.
-- All tenant data access goes through one scoped data-access layer.
-- A tenant can be fully deleted by one documented procedure.
-- Dependencies are scanned in CI.
-
-## 8. Testing strategy
-
-- Unit tests for linking, signals, policy evaluation and calibration, using synthetic repositories created inside the tests.
-- Integration tests with mocked connectors for the full scoring flow.
-- A backtest regression test: on a small pinned public repository, the headline metrics stay within a tolerance of recorded values, so a change that quietly breaks the model is caught.
-- Contract tests for webhook payloads using recorded examples from a test organisation, with any private content removed.
-
-## 9. What to report back
-
-At the end of each milestone, write a short summary for the human owner:
-- what was built and how to run it;
-- the acceptance criteria and the evidence for each;
-- decisions made where the plan left room, with reasons;
-- anything that did not work as the plan assumed;
-- what is needed from a person before the next milestone.
-
-If something cannot be verified, say so. A milestone reported as done with an untested path is worse than one reported as incomplete.
-
-## 10. Open decisions for the human owner
-
-- Which public repositories to use for the first backtest, if the agent's proposal is not acceptable.
-- Whether design-partner incident data is available before Milestone 3.
-- LLM provider for the optional tagging feature.
-- Managed versus self-hosted ClickHouse and Temporal, after seeing the cost estimate.
-- Go or no-go after the backtest report.
-- When, if ever, to allow the service to approve or merge changes. This plan ships shadow mode only.
+These establish interfaces and research definitions, not product efficacy. No new collector, capacity model, or end-to-end Action has run in this replanning session.
