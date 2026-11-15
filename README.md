@@ -6,7 +6,7 @@ Ephorate is a planned review capacity simulator: a Python CLI and GitHub Action 
 
 **Nothing in the new product is built yet.** This repository contains the plan, first handoff, research references, and a static landing page. There is no working collector, capacity model, report generator, or Action. The interrupted skeleton for the former product was removed from the active tree before this re-plan.
 
-[Public personal repository](https://github.com/thedhinakarr/ephorate) · Intended domain to buy: `ephorate.dev` (ownership not verified).
+[Public personal repository](https://github.com/thedhinakarr/ephorate).
 
 ## Why this direction
 
