@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ephorate: merge on evidence</title>
-<meta name="description" content="Ephorate gives every pull request a measured probability of causing an incident, calibrated on your own history. You set the threshold; reviewers see only the changes that need them.">
+<title>Ephorate: review capacity simulator</title>
+<meta name="description" content="Find out where code review will break as your agents write more code, and what would fix it. Ephorate is a planned review capacity simulator for GitHub teams.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B2430'/%3E%3Cg fill='%23EEF0EC'%3E%3Crect x='5' y='8' width='3' height='16'/%3E%3Crect x='10' y='8' width='3' height='16'/%3E%3Crect x='15' y='8' width='3' height='16'/%3E%3Crect x='20' y='8' width='3' height='16'/%3E%3C/g%3E%3Crect x='25' y='8' width='3' height='16' fill='%23C8554D'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,7 @@
     -webkit-font-smoothing: antialiased;
   }
   a { color: inherit; }
-  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible, .scroll:focus-visible {
     outline: 3px solid var(--aegean);
     outline-offset: 3px;
   }
@@ -69,21 +69,17 @@
   /* instrument */
   .instrument { background: var(--panel); border: 1.5px solid var(--iron); padding: clamp(18px, 2.4vw, 28px); }
   .instrument h2 { font-family: var(--text); font-size: 15px; font-weight: 600; margin: 0 0 14px; }
-  .queue { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
-  .queue i { display: block; aspect-ratio: 1; border: 2px solid var(--crimson); background: transparent; transition: background-color 140ms, border-color 140ms; }
-  .queue i.clear { background: var(--aegean); border-color: var(--aegean); }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 20px; font-size: 14px; color: var(--soft); }
-  .legend span { display: inline-flex; align-items: center; gap: 8px; }
-  .legend i { width: 13px; height: 13px; display: inline-block; border: 2px solid var(--crimson); }
-  .legend i.clear { background: var(--aegean); border-color: var(--aegean); }
-  .dial label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
-  .dial output { font-family: var(--display); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
-  .dial input[type=range] { width: 100%; accent-color: var(--iron); margin: 0; height: 28px; }
+  .area-map { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: 14px; }
+  .area-map li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--stone); }
+  .area-map span { color: var(--soft); text-align: right; }
+  .review-pool { border: 1.5px solid var(--aegean); padding: 16px; margin-top: 16px; }
+  .review-pool strong { color: var(--aegean); }
+  .review-pool p { margin: 6px 0 0; color: var(--soft); font-size: 15px; }
   .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid var(--stone); margin-top: 18px; padding-top: 16px; }
-  .readout b { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 3.4vw, 2.7rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .readout b { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(1.25rem, 3.4vw, 2rem); line-height: 1.2; }
   .readout span { display: block; font-size: 14px; color: var(--soft); margin-top: 6px; }
-  .readout .to-review b { color: var(--crimson); }
-  .readout .to-merge b { color: var(--aegean); }
+  .readout .waiting b { color: var(--crimson); }
+  .readout .coverage b { color: var(--aegean); }
   .instrument .fine { font-size: 14px; color: var(--soft); margin: 16px 0 0; }
 
   /* sections */
@@ -105,22 +101,21 @@
   ol.steps p { margin: 4px 0 0; color: var(--soft); max-width: 36em; }
   @media (max-width: 760px) { ol.steps li { grid-template-columns: 40px 1fr; } ol.steps p { grid-column: 2; } }
 
-  /* check + policy */
+  /* report preview */
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
   @media (max-width: 860px) { .pair { grid-template-columns: 1fr; } }
   .pair > div, .hero > div { min-width: 0; }
   .pair h3 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
-  .check { background: var(--panel); border: 1.5px solid var(--iron); }
-  .check header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--stone); font-weight: 600; }
-  .check header svg { flex: none; }
-  .check dl { margin: 0; padding: 6px 20px; }
-  .check dl div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--stone); }
-  .check dl div:last-child { border-bottom: 0; }
-  .check dt { color: var(--soft); }
-  .check dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-  .check footer { padding: 14px 20px; border-top: 1px solid var(--stone); font-size: 14px; color: var(--soft); }
-  pre.policy { margin: 0; background: var(--iron); color: #DCE3E0; padding: 22px 24px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
-  pre.policy .c { color: #93A3AD; }
+  .report { background: var(--panel); border: 1.5px solid var(--iron); }
+  .report header { padding: 16px 20px; border-bottom: 1px solid var(--stone); font-weight: 600; }
+  .report dl { margin: 0; padding: 6px 20px; }
+  .report dl div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--stone); }
+  .report dl div:last-child { border-bottom: 0; }
+  .report dt { color: var(--soft); }
+  .report dd { margin: 0; font-weight: 600; text-align: right; }
+  .report footer { padding: 14px 20px; border-top: 1px solid var(--stone); font-size: 14px; color: var(--soft); }
+  pre.outline { margin: 0; background: var(--iron); color: #DCE3E0; padding: 22px 24px; font-family: var(--mono); font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre.outline .c { color: #93A3AD; }
   .pair p.under { font-size: 15px; color: var(--soft); margin: 14px 0 0; }
 
   /* table */
@@ -169,10 +164,10 @@
   footer.end { background: var(--iron); color: #B9C3C8; border-top: 1px solid #36424F; font-size: 14px; }
   footer.end .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; padding-top: 22px; padding-bottom: 28px; }
   footer.end a { color: #DCE3E0; }
+  .closing a:focus-visible, footer.end a:focus-visible { outline-color: var(--marble); }
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .queue i { transition: none; }
   }
 </style>
 </head>
@@ -185,7 +180,7 @@
   </a>
   <nav class="nav" aria-label="Main">
     <a class="opt" href="#how">How it works</a>
-    <a class="opt" href="#difference">What’s different</a>
+    <a class="opt" href="#scenarios">What to test</a>
     <a class="opt" href="#status">Status</a>
     <a href="https://github.com/thedhinakarr/ephorate">GitHub</a>
   </nav>
@@ -195,113 +190,108 @@
 
   <div class="wrap hero">
     <div>
-      <h1>Review what needs a reviewer. Merge the rest on evidence.</h1>
-      <p class="lead">Ephorate gives every pull request a measured probability of causing an incident, calibrated on your own history. You set the threshold. Changes below it merge after checks, and the rest go to the engineer who knows the code.</p>
+      <h1>More code.<br>Who will review it?</h1>
+      <p class="lead">Find out where code review will break as your agents write more code, and what would fix it.</p>
       <div class="actions">
-        <a class="btn btn-solid" href="mailto:hello@example.com?subject=Ephorate%20early%20access">Request early access</a>
-        <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+        <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">Follow development</a>
+        <a class="btn btn-line" href="#how">Explore the plan</a>
       </div>
-      <p class="stage">In development. The backtest engine comes first, so you can test it on your past changes before anything touches a live pull request.</p>
+      <p class="stage">A review capacity simulator, now at the planning stage. A Python CLI and GitHub Action are planned; useful forecasts must first pass a backtest.</p>
     </div>
 
     <div class="instrument">
-      <h2 id="queue-title">100 open pull requests</h2>
-      <div class="queue" id="queue" role="img" aria-labelledby="queue-title queue-summary"></div>
-      <div class="legend" aria-hidden="true">
-        <span><i class="clear"></i>Merges after checks</span>
-        <span><i></i>Goes to a reviewer</span>
+      <h2>Illustration · one shared review pool</h2>
+      <ul class="area-map" aria-label="Example areas sending pull requests for review">
+        <li><strong>API</strong><span>PR arrivals →</span></li>
+        <li><strong>Platform</strong><span>PR arrivals →</span></li>
+        <li><strong>Documentation</strong><span>PR arrivals →</span></li>
+      </ul>
+      <div class="review-pool">
+        <strong>Shared reviewers</strong>
+        <p>The same people may review several areas. Moving work into one area can change the queue in another.</p>
       </div>
-      <div class="dial">
-        <label for="threshold">Your risk threshold <output id="threshold-out" for="threshold">0.5%</output></label>
-        <input type="range" id="threshold" min="0.1" max="3" step="0.1" value="0.5" aria-describedby="queue-summary">
+      <div class="readout">
+        <div class="waiting"><b>Queue</b><span>How much work is waiting?</span></div>
+        <div class="coverage"><b>Coverage</b><span>How much gets a human review?</span></div>
       </div>
-      <div class="readout" id="queue-summary" aria-live="polite">
-        <div class="to-merge"><b id="n-clear">0</b><span>merge after checks</span></div>
-        <div class="to-review"><b id="n-review">0</b><span>go to a reviewer</span></div>
-      </div>
-      <p class="fine">Average incident risk of a cleared change: <strong id="avg-risk">0%</strong>. Example data; your numbers come from your own history.</p>
+      <p class="fine">Concept illustration only. No repository data, measured capacity or forecast is shown.</p>
     </div>
   </div>
 
   <section class="band" id="problem">
     <div class="wrap">
-      <p class="figures">Coding agents raised code output by <b>44%</b>. Finished work rose <b>14%</b>. The wait for approval grew <b>56%</b>.</p>
-      <p class="intro">Writing code got fast. Checking it did not. Every change still queues for the few people who know that part of the codebase, so more code piles up and little more ships.</p>
-      <p class="source">Figures are estimated effects of AI coding agents across 655 firms, from Chen and Stratton, “Artificial Intelligence in the Firm: Bottlenecks in Software Production” (Harvard University, 2026).</p>
+      <p class="figures">After AI agent adoption, time from pull request submission to merge rose an estimated <b>56.1%</b> in one study.</p>
+      <p class="intro">Review capacity depends on who knows the code and where their time is already going. Ephorate’s plan is to test those constraints against a team’s own history before forecasting what more pull requests would do.</p>
+      <p class="source">Chen and Stratton, <a href="https://fion.ac/jellyfish.pdf">“Artificial Intelligence in the Firm: Bottlenecks in Software Production”</a> (Harvard University, 2026), a study of 655 firms. This is a study estimate, not a forecast for your team or evidence that Ephorate works.</p>
     </div>
   </section>
 
   <section class="band" id="how">
     <div class="wrap">
-      <h2 class="title">How it works</h2>
-      <p class="intro">Ephorate sits on top of the AI reviewer and CI you already use. It adds one thing they lack: a risk number checked against what happened afterwards.</p>
+      <h2 class="title">How it is planned to work</h2>
+      <p class="intro">Read GitHub history, map the shared review capacity, and test the model against the past. Scenarios come after that credibility check.</p>
       <ol class="steps">
-        <li><h3>Learn from your history</h3><p>It reads your past changes and traces each incident, revert and hotfix back to the change that caused it.</p></li>
-        <li><h3>Score each pull request</h3><p>Size, the files touched, who knows them and how those files have behaved before become a probability, calibrated so that 1% means 1%.</p></li>
-        <li><h3>Apply your policy</h3><p>A short file in your repository sets the threshold and names the paths that always need a person.</p></li>
-        <li><h3>Route the decision</h3><p>Changes under the threshold merge once tests and review checks pass. The others go to the reviewer most familiar with the code.</p></li>
-        <li><h3>Track what happens</h3><p>Every merge is followed. When something breaks, the link feeds the next model refresh and shows up in your escape rate.</p></li>
+        <li><h3>Read the history</h3><p>Use a read-only token to collect pull request metadata, review events and changed paths, plus CODEOWNERS configuration where present. Detectable coding agents and dependency bots are counted separately.</p></li>
+        <li><h3>Map areas and reviewers</h3><p>Measure arrivals, prior familiarity and the distribution of reviewing across areas. Account for people who review in more than one area.</p></li>
+        <li><h3>Measure the queue</h3><p>Separate time waiting for a human response from elapsed time after that response, and report formal human review coverage alongside both.</p></li>
+        <li><h3>Test against the past</h3><p>Fit on earlier history and predict a later period. Compare waiting-time predictions with a simple baseline and report errors before treating scenarios as useful forecasts.</p></li>
+        <li><h3>Test a change</h3><p>If the backtest supports it, simulate more agent pull requests or a different review arrangement. Show assumptions, backtest error, queue effects and coverage together.</p></li>
       </ol>
     </div>
   </section>
 
   <section class="band" id="product">
     <div class="wrap">
-      <h2 class="title">One check on the pull request, one file in the repo</h2>
-      <p class="intro">Engineers see a number, a comparison and a decision. Leads set the rules in a file that is versioned and reviewed like any other code.</p>
+      <h2 class="title">A report you run and keep</h2>
+      <p class="intro">The planned delivery is a Python command-line tool and a GitHub Action. Run it locally or in your own CI, and keep its metadata store and reports there. No hosted service is planned.</p>
       <div class="pair">
         <div>
-          <h3>The check</h3>
-          <div class="check">
-            <header>
-              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" fill="#1F5673"/><path d="M5.5 11.5l3.6 3.6 7.4-8" fill="none" stroke="#EEF0EC" stroke-width="2.2"/></svg>
-              Ephorate: cleared to merge
-            </header>
+          <h3>Planned report contents</h3>
+          <div class="report">
+            <header>Review capacity, by area</header>
             <dl>
-              <div><dt>Incident risk for this change</dt><dd>0.3%</dd></div>
-              <div><dt>Reviewed changes like it</dt><dd>2.1%</dd></div>
-              <div><dt>Your threshold</dt><dd>0.5%</dd></div>
-              <div><dt>Main factors</dt><dd>Small, well-tested, author owns these files</dd></div>
+              <div><dt>Demand</dt><dd>Pull request arrivals</dd></div>
+              <div><dt>Reviewing</dt><dd>Shared capacity and familiarity</dd></div>
+              <div><dt>Queue</dt><dd>Waiting time and backlog</dd></div>
+              <div><dt>Coverage</dt><dd>Recorded human reviews</dd></div>
+              <div><dt>Evidence</dt><dd>Backtest error and limitations</dd></div>
             </dl>
-            <footer>Example values. Each decision is stored with the inputs that produced it.</footer>
+            <footer>Illustrative structure, not generated output. Real reports must trace every number to collected data.</footer>
           </div>
         </div>
         <div>
-          <h3>The policy</h3>
-<pre class="policy"><span class="c"># .ephorate/policy.yml</span>
-threshold: 0.005          <span class="c"># 0.5% incident risk</span>
+          <h3>Planned output files</h3>
+<pre class="outline"><span class="c"># Outputs, not a live product</span>
 
-always_review:
-  - "services/payments/**"
-  - "infra/terraform/**"
-  - "**/migrations/**"
+HTML report
+  Observations, scenarios, limitations
 
-required_checks:
-  - ci/tests
-  - ai-review
+JSON report
+  Measurements and data provenance
 
-mode: shadow              <span class="c"># report, don't enforce</span></pre>
-          <p class="under">A missing or invalid policy sends every change to a reviewer.</p>
+CODEOWNERS suggestion
+  Proposed changes for you to review</pre>
+          <p class="under">Ephorate will only write its own local data and report files. It will not edit CODEOWNERS, assign reviews or change repository settings.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="band" id="difference">
+  <section class="band" id="scenarios">
     <div class="wrap">
-      <h2 class="title">A measurement where others give a label</h2>
-      <p class="intro">Many review tools now tag a change as low, medium or high risk. Ephorate does a different job.</p>
-      <div class="scroll">
+      <h2 class="title" id="scenarios-title">Test a fix before changing the workflow</h2>
+      <p class="intro">These are planned scenarios, conditional on a useful backtest. Moving work must account for the other areas that share the same reviewers.</p>
+      <div class="scroll" tabindex="0" role="region" aria-labelledby="scenarios-title">
         <table class="diff">
           <thead>
-            <tr><th scope="col"><span style="position:absolute;left:-9999px">Question</span></th><th scope="col">Risk label from a review tool</th><th scope="col">Ephorate</th></tr>
+            <tr><th scope="col">Scenario</th><th scope="col">What changes</th><th scope="col">What to inspect together</th></tr>
           </thead>
           <tbody>
-            <tr><th scope="row">What you get</th><td>Low, medium or high</td><td class="ours">A probability, with a baseline to compare it to</td></tr>
-            <tr><th scope="row">Where it comes from</th><td>A model’s reading of the diff</td><td class="ours">Your own record of changes and incidents</td></tr>
-            <tr><th scope="row">Checked against outcomes</th><td>Not reported</td><td class="ours">Calibration and escape rate, tracked continuously</td></tr>
-            <tr><th scope="row">Explaining a decision</th><td>A written rationale</td><td class="ours">The stored inputs, model version and policy that produced it</td></tr>
-            <tr><th scope="row">Review comments on the code</th><td>Yes</td><td class="ours">No. Keep the reviewer you have</td></tr>
+            <tr><th scope="row">More agent output</th><td>Increase detected agent PR arrivals</td><td class="ours">Queue growth, waiting time and review coverage</td></tr>
+            <tr><th scope="row">Another qualified reviewer</th><td>Expand who can review an area</td><td class="ours">Assumed availability and effects on other areas</td></tr>
+            <tr><th scope="row">Different allocation</th><td>Move reviewing between people</td><td class="ours">Whether a queue shrinks or simply moves</td></tr>
+            <tr><th scope="row">Agent PR limits</th><td>Cap size or work in progress</td><td class="ours">Waiting work, deferred work and model assumptions</td></tr>
+            <tr><th scope="row">Review exemption</th><td>Remove a chosen class from human review</td><td class="ours">Lost coverage as well as shorter queues; no claim that exemption is safe</td></tr>
           </tbody>
         </table>
       </div>
@@ -310,13 +300,13 @@ mode: shadow              <span class="c"># report, don't enforce</span></pre>
 
   <section class="band" id="commitments">
     <div class="wrap">
-      <h2 class="title">Built to be trusted with the merge button</h2>
+      <h2 class="title">Understand the system. Don’t grade the people.</h2>
       <p class="intro">Four rules shape the design.</p>
       <div class="commit">
-        <div><h3>Read-only by default</h3><p>Ephorate reads history and incidents and writes one check. It does not merge, approve or push unless you switch that on.</p></div>
-        <div><h3>Shadow mode first</h3><p>It starts by reporting what it would decide. You compare that with what happened before letting it gate anything.</p></div>
-        <div><h3>The language model never decides</h3><p>A language model may describe a diff as one input. The decision comes from a calibrated statistical model and your policy file.</p></div>
-        <div><h3>Your code is not kept</h3><p>Source is processed in memory to extract signals. What is stored is the signals, file paths and commit identifiers.</p></div>
+        <div><h3>Read-only GitHub access</h3><p>The tool will collect history and suggest changes. It will never merge, approve, post reviews, change labels or edit repository settings.</p></div>
+        <div><h3>Area-level views first</h3><p>Reports will describe the distribution of work. Optional names will support reviewer planning, with one option to hide per-person detail. No individual rankings or performance grades.</p></div>
+        <div><h3>Metadata, not source code</h3><p>The collector will retain identifiers, timestamps, paths and counts. CODEOWNERS is the only repository configuration it will fetch; source code will not be stored or sent elsewhere. No language model is required.</p></div>
+        <div><h3>Errors beside forecasts</h3><p>The plan requires time-ordered backtests, a simple comparison baseline and disclosed assumptions. Unsupported scenarios must say so, and shorter waits must be shown alongside review coverage.</p></div>
       </div>
     </div>
   </section>
@@ -324,12 +314,12 @@ mode: shadow              <span class="c"># report, don't enforce</span></pre>
   <section class="band" id="status">
     <div class="wrap">
       <h2 class="title">Where it stands</h2>
-      <p class="intro">Ephorate is not generally available yet. The parts ship in this order, and the first one decides whether the rest are worth building.</p>
+      <p class="intro">The review capacity product is not built. Today there is a plan, a research reference and this static page. The next assignment is the Python CLI skeleton.</p>
       <ul class="status">
-        <li><div><strong>Backtest engine</strong><p>History ingestion, incident linking, the calibrated model and a report on your past changes.</p></div><span class="state now">In development</span></li>
-        <li><div><strong>GitHub App in shadow mode</strong><p>Live scores as a check on each pull request.</p></div><span class="state">Planned</span></li>
-        <li><div><strong>Policy and reviewer routing</strong><p>The policy file, required paths and reviewer suggestions.</p></div><span class="state">Planned</span></li>
-        <li><div><strong>Outcome dashboard</strong><p>Escape rate, calibration and a what-if view for thresholds.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Plan, research and static concept</strong><p>The product direction and implementation handoff are documented.</p></div><span class="state now">Available</span></li>
+        <li><div><strong>CLI, collection and measurements</strong><p>A local metadata store, incremental GitHub history and area-level measurements.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Capacity model and backtest</strong><p>Compare predictions with later history on three public repositories. Stop for owner review before continuing.</p></div><span class="state">Credibility gate</span></li>
+        <li><div><strong>Scenarios, reports and GitHub Action</strong><p>Test workflow changes, produce HTML and JSON, and run in the team’s own CI.</p></div><span class="state">Gated</span></li>
       </ul>
     </div>
   </section>
@@ -338,12 +328,12 @@ mode: shadow              <span class="c"># report, don't enforce</span></pre>
     <div class="wrap">
       <h2 class="title">Questions</h2>
       <div class="faq">
-        <details><summary>Does Ephorate replace our AI code reviewer?</summary><p>No. It doesn’t comment on code. It uses your reviewer’s result as one required check and decides whether a person also needs to look.</p></details>
-        <details><summary>Will it merge code without asking?</summary><p>Not unless you turn that on. It starts in shadow mode, where it only reports the decision it would make.</p></details>
-        <details><summary>What access does it need?</summary><p>Read access to your Git history and pull requests, and to incident records from tools such as PagerDuty or Datadog. It writes a check and nothing else.</p></details>
-        <details><summary>We don’t have many incidents. Does it still work?</summary><p>Reverts, hotfixes and bug-fix commits count as outcomes too, so most active repositories have enough to learn from. With less history the estimates are wider, and the report says so.</p></details>
-        <details><summary>Who is it for?</summary><p>Engineering teams where coding agents have filled the review queue faster than senior engineers can clear it.</p></details>
-        <details><summary>Where does the name come from?</summary><p>The ephorate was Sparta’s board of five elected overseers, who could hold even the kings to account. It is pronounced EFF-er-it.</p></details>
+        <details><summary>Can I run it today?</summary><p>No. The review capacity tool is planned, and no validated forecast is available. Follow the repository for the implementation and backtest results.</p></details>
+        <details><summary>What access is planned?</summary><p>A read-only GitHub token for pull request and review metadata, changed paths and CODEOWNERS configuration. The tool will write only its own metadata store and report files where you run it.</p></details>
+        <details><summary>Will it change our reviews or CODEOWNERS?</summary><p>No. It will only suggest changes for a person to consider. It will not modify reviews, ownership rules, labels or repository settings.</p></details>
+        <details><summary>Can it tell us who is slow?</summary><p>That is not its purpose. GitHub records elapsed workflow time, not a person’s review effort. The default reports will be about areas and queues, with no individual rankings. Seniority will never be inferred as fact.</p></details>
+        <details><summary>Will it identify every agent-written change?</summary><p>No. Known bot accounts and recognised co-author trailers can identify some agent use. Reports will state that detectable agent authorship undercounts actual use and will separate dependency bots.</p></details>
+        <details><summary>What if the forecast does not hold?</summary><p>The backtest is a gate. If the model cannot beat the simple baseline, the report must say so and scenario development stops for owner review. Any later forecast must show its backtest error and assumptions.</p></details>
       </div>
     </div>
   </section>
@@ -352,59 +342,21 @@ mode: shadow              <span class="c"># report, don't enforce</span></pre>
 
 <div class="closing">
   <div class="wrap">
-    <h2>See what your own history says first.</h2>
-    <p>The backtest scores your past changes and compares the result with what happened. If the lowest-risk changes weren’t safer, you’ll know before installing anything.</p>
+    <h2>Test the forecast against the past first.</h2>
+    <p>The first question is whether review capacity can be forecast well enough to guide a change. Ephorate’s plan puts that test before scenarios or claims of saved time.</p>
     <div class="actions">
-      <a class="btn btn-solid" href="mailto:hello@example.com?subject=Ephorate%20early%20access">Request early access</a>
-      <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+      <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">Follow development</a>
+      <a class="btn btn-line" href="#status">See where it stands</a>
     </div>
   </div>
 </div>
 <footer class="end">
   <div class="wrap">
     <span>Ephorate</span>
-    <span>Contact: <a href="mailto:hello@example.com">hello@example.com</a></span>
+    <span>Review capacity simulator · planning stage</span>
     <a href="https://github.com/thedhinakarr/ephorate">github.com/thedhinakarr/ephorate</a>
   </div>
 </footer>
 
-<script>
-(function () {
-  // Deterministic example data: 100 pull requests with a skewed spread of incident risk (in %).
-  var seed = 20261114;
-  function rand() {
-    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-  var risks = [];
-  for (var i = 0; i < 100; i++) { var u = rand(); risks.push(0.05 * Math.pow(120, u * u)); }
-
-  var queue = document.getElementById('queue');
-  var cells = risks.map(function () { var c = document.createElement('i'); queue.appendChild(c); return c; });
-
-  var slider = document.getElementById('threshold');
-  var out = document.getElementById('threshold-out');
-  var nClear = document.getElementById('n-clear');
-  var nReview = document.getElementById('n-review');
-  var avg = document.getElementById('avg-risk');
-
-  function update() {
-    var t = parseFloat(slider.value), clear = 0, sum = 0;
-    risks.forEach(function (r, i) {
-      var ok = r < t;
-      cells[i].className = ok ? 'clear' : '';
-      if (ok) { clear++; sum += r; }
-    });
-    out.textContent = t.toFixed(1) + '%';
-    nClear.textContent = clear;
-    nReview.textContent = 100 - clear;
-    avg.textContent = clear ? (sum / clear).toFixed(2) + '%' : 'none cleared';
-  }
-  slider.addEventListener('input', update);
-  update();
-})();
-</script>
 </body>
 </html>
