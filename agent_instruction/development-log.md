@@ -35,3 +35,10 @@ The owner cleared the working files before the removal-check pivot. Earlier chro
 - The owner explicitly requested committing and pushing M1 to the personal Ephorate repository. Verified `thedhinakarr/ephorate` is public, owned by the authenticated personal user, and matches the local origin URL.
 - Prepared `implementation/removal-check-m1` with the reviewed engine, fixtures, package/lockfile, CI, schema, license, planning and validation records, plus the earlier intentional reset deletions. Environment, build and cache artifacts are excluded. Existing 205-test and fresh-checkout validation remains recorded above; no engine changes were made during publication preparation.
 - This assignment authorizes the branch commit and push. It does not assign a merge into main, M2 replay, PyPI publishing or deployment.
+
+## 2026-11-16 — M1 pushed; Pages publication assigned
+
+- Committed M1 as `4a3c04c8de255da12b79f531e895481c1166e86a` and pushed `implementation/removal-check-m1` to the verified personal public repository after GitHub CLI authorization completed. Remote CI started; no merge into main was performed.
+- The owner additionally requested GitHub Pages deployment. Prepared a content-only `gh-pages` publication, native code disclosures, keyboard-scrollable regions, visible focus, no-script fallback and current-branch source links. The existing console aesthetic is preserved.
+- Pre-publication checks passed: desktop and 390 px layout, 22/11 counters and rerun, keyboard disclosure/scroll behavior, contrasting focus, no warning/error logs on the normal page, and HTTP 200 for all six unique external anchor destinations. Script-disabled browser-frame rendering showed all example code, a disabled run button and the explanatory fallback. Reduced-motion CSS/JavaScript branches passed a temporary forced-branch browser check (22/11, zero transition duration, automatic scrolling) and a separate JavaScript self-check; the operating-system preference itself was not toggled.
+- Deployment outcome will be recorded after GitHub Pages reports success and the live page is verified. Package release and M2 remain unassigned.

@@ -27,7 +27,7 @@
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--marble); color: var(--iron); font-family: var(--text); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
-  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--aegean); outline-offset: 3px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex="0"]:focus-visible { outline: 3px solid var(--aegean); outline-offset: 3px; }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--edge); }
 
   .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 22px; padding-bottom: 22px; }
@@ -44,6 +44,7 @@
   .btn-solid { background: var(--iron); color: var(--marble); }
   .btn-solid:hover { background: #2B3848; }
   .btn-line:hover { background: var(--panel); }
+  .btn:disabled { cursor: default; opacity: 0.65; }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
   .hero { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: start; padding-top: clamp(32px, 6vw, 72px); padding-bottom: clamp(56px, 8vw, 104px); }
@@ -61,13 +62,14 @@
   .unit-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .loc { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
   .verdict { flex: none; font-size: 13px; font-weight: 600; padding: 1px 8px; border: 1.5px solid var(--stone); color: var(--soft); white-space: nowrap; }
+  .unit-code { margin-top: 6px; }
+  .unit-code summary { font-family: var(--mono); font-size: 12.5px; color: var(--soft); cursor: pointer; }
   .unit pre { margin: 8px 0 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; transition: opacity 160ms; }
   .unit pre .del { color: var(--soft); }
   .unit .why { display: none; margin: 4px 0 0; font-size: 14px; color: var(--soft); }
   .unit .why code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
   .unit.is-trying pre { opacity: 0.3; text-decoration: line-through; }
   .unit.is-held .why, .unit.is-inert .why, .unit.is-loose .why, .unit.is-unjudged .why { display: block; }
-  .unit.is-held pre, .unit.is-inert pre { display: none; }
   .unit.is-held .verdict { border-color: var(--aegean); color: var(--aegean); }
   .unit.is-loose, .unit.is-unjudged { border-left-color: var(--crimson); }
   .unit.is-loose .verdict, .unit.is-unjudged .verdict { border-color: var(--crimson); color: var(--crimson); }
@@ -143,6 +145,7 @@
   footer.end { background: var(--iron); color: #B9C3C8; border-top: 1px solid #36424F; font-size: 14px; }
   footer.end .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; padding-top: 22px; padding-bottom: 28px; }
   footer.end a { color: #DCE3E0; }
+  .closing :focus-visible, footer.end :focus-visible { outline-color: var(--marble); }
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -161,7 +164,7 @@
     <a class="opt" href="#how">How it works</a>
     <a class="opt" href="#limits">Limits</a>
     <a class="opt" href="#status">Status</a>
-    <a href="https://github.com/thedhinakarr/ephorate">GitHub</a>
+    <a href="https://github.com/thedhinakarr/ephorate/tree/implementation/removal-check-m1">GitHub</a>
   </nav>
 </header>
 
@@ -172,63 +175,81 @@
       <h1>Every changed line answers to a test, or to you.</h1>
       <p class="lead">Ephorate reverts a change one piece at a time and reruns your tests. Reproduced assertion witnesses and removals the tests did not detect become evidence for the coding agent and the reviewer’s reading list.</p>
       <div class="actions">
-        <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
-        <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/main/PROJECT_PLAN.md">Read the plan</a>
+        <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate/tree/implementation/removal-check-m1">View on GitHub</a>
+        <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/implementation/removal-check-m1/PROJECT_PLAN.md">Read the plan</a>
       </div>
-      <p class="stage">The M1 engine is implemented and tested on local fixtures. Real-PR usefulness remains unmeasured; no public release yet. This panel is an illustration, not a live engine run.</p>
+      <p class="stage">The M1 engine is implemented and tested on local fixtures. Real-PR usefulness remains unmeasured; no package release yet. This panel is an illustration, not a live engine run.</p>
     </div>
 
     <div class="instrument" aria-labelledby="demo-title">
       <div class="instrument-head">
         <h2 id="demo-title">An agent’s change, in six pieces</h2>
-        <button class="btn btn-line" id="run" type="button">Run the check</button>
+        <button class="btn btn-line" id="run" type="button" disabled>Run the check</button>
       </div>
 
       <div id="units">
         <div class="unit" data-v="held" data-n="6">
           <div class="unit-head"><span class="loc">billing/refund.py 40–45</span><span class="verdict">not checked</span></div>
-<pre>+def refund_amount(capture, requested):
+          <details class="unit-code" open>
+            <summary aria-label="Source code for billing/refund.py lines 40 to 45">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for billing/refund.py lines 40 to 45">+def refund_amount(capture, requested):
 +    captured = capture.amount_minor
 +    share = Decimal(requested) / Decimal(captured)
 +    fee_back = (capture.fee_minor * share).quantize(
 +        Decimal("1"), rounding=ROUND_HALF_UP)
 +    return requested, int(fee_back)</pre>
+          </details>
           <p class="why">Example assertion witness: <code>test_partial_capture_rounds_half_up</code>. Reproduced on removal; the head control passes.</p>
         </div>
         <div class="unit" data-v="inert" data-n="3">
           <div class="unit-head"><span class="loc">billing/money.py 12–13</span><span class="verdict">not checked</span></div>
-<pre><span class="del">-# convert to minor units</span>
+          <details class="unit-code" open>
+            <summary aria-label="Source code for billing/money.py lines 12 to 13">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for billing/money.py lines 12 to 13"><span class="del">-# convert to minor units</span>
 +# Convert a decimal amount to minor units.
 +# Exponents come from the currency table.</pre>
+          </details>
           <p class="why">The syntax tree is unchanged. This does not prove that source-text consumers behave the same.</p>
         </div>
         <div class="unit" data-v="held" data-n="2">
           <div class="unit-head"><span class="loc">billing/refund.py 61–62</span><span class="verdict">not checked</span></div>
-<pre>+    if requested > capture.remaining_minor:
+          <details class="unit-code" open>
+            <summary aria-label="Source code for billing/refund.py lines 61 to 62">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for billing/refund.py lines 61 to 62">+    if requested > capture.remaining_minor:
 +        raise RefundExceedsCapture(capture.id)</pre>
+          </details>
           <p class="why">Example assertion witness: <code>test_refund_capped_at_captured_amount</code>. Reproduced on removal; the head control passes.</p>
         </div>
         <div class="unit" data-v="loose" data-n="3">
           <div class="unit-head"><span class="loc">billing/refund.py 88–90</span><span class="verdict">not checked</span></div>
-<pre>+    if capture.currency not in SUPPORTED:
+          <details class="unit-code" open>
+            <summary aria-label="Source code for billing/refund.py lines 88 to 90">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for billing/refund.py lines 88 to 90">+    if capture.currency not in SUPPORTED:
 +        log.warning("unsupported: %s", capture.currency)
 +        return 0, 0</pre>
+          </details>
           <p class="why">Removed it: all 214 tests still pass. No witness was observed; this is not permission to delete it.</p>
         </div>
         <div class="unit" data-v="loose" data-n="6">
           <div class="unit-head"><span class="loc">billing/retry.py 12–17</span><span class="verdict">not checked</span></div>
-<pre>+def with_retry(fn, attempts=3, delay=0.2):
+          <details class="unit-code" open>
+            <summary aria-label="Source code for billing/retry.py lines 12 to 17">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for billing/retry.py lines 12 to 17">+def with_retry(fn, attempts=3, delay=0.2):
 +    for n in range(attempts):
 +        try:
 +            return fn()
 +        except TransientError:
 +            time.sleep(delay * 2 ** n)</pre>
+          </details>
           <p class="why">Removed it: all 214 tests still pass. No witness was observed; this is not permission to delete it.</p>
         </div>
         <div class="unit" data-v="unjudged" data-n="2">
           <div class="unit-head"><span class="loc">settings.toml 4</span><span class="verdict">not checked</span></div>
-<pre><span class="del">-refund_window_days = 90</span>
+          <details class="unit-code" open>
+            <summary aria-label="Source code for settings.toml line 4">Source code</summary>
+<pre tabindex="0" role="region" aria-label="Code for settings.toml line 4"><span class="del">-refund_window_days = 90</span>
 +refund_window_days = 120</pre>
+          </details>
           <p class="why">Unsupported configuration file. Ephorate cannot judge it; review is still needed.</p>
         </div>
       </div>
@@ -238,7 +259,7 @@
         <div class="left"><b id="n-left">22</b><span>left to read</span></div>
       </div>
       <p class="fine">Illustration with made-up code. The reviewer still reads the tests. Folded units are not certified correct or safe.</p>
-      <noscript><p class="fine">Turn on JavaScript to watch the check run.</p></noscript>
+      <noscript><p class="fine">JavaScript is off; all 22 example changed lines remain available above. The animated illustration reports 8 held lines, 3 inert, 9 loose and 2 unjudged, leaving 11 lines on the reading list. These are made-up results; this page does not run tests.</p></noscript>
     </div>
   </div>
 
@@ -271,9 +292,9 @@
 
   <section class="band" id="verdicts">
     <div class="wrap">
-      <h2 class="title">Four verdicts</h2>
+      <h2 class="title" id="verdicts-title">Four verdicts</h2>
       <p class="intro">Each unit gets exactly one. When Ephorate cannot tell, it says so.</p>
-      <div class="scroll">
+      <div class="scroll" tabindex="0" role="region" aria-labelledby="verdicts-title">
         <table class="grid">
           <thead><tr><th scope="col">Verdict</th><th scope="col">What the trial showed</th><th scope="col">What to do with it</th></tr></thead>
           <tbody>
@@ -290,11 +311,11 @@
   <section class="band" id="product">
     <div class="wrap">
       <h2 class="title">One command, and one line in the agent’s instructions</h2>
-      <p class="intro">Once the tool is built, the agent will investigate its findings before asking for review. The reviewer will get the same evidence.</p>
+      <p class="intro">Run the check and investigate its findings before asking for review. The reviewer gets the same evidence.</p>
       <div class="pair">
         <div>
-          <h3>The check</h3>
-<pre class="term"><span class="c">$</span> ephorate check --base origin/main -- pytest -q
+          <h3 id="check-example-title">The check</h3>
+<pre class="term" tabindex="0" role="region" aria-labelledby="check-example-title"><span class="c">$</span> ephorate check --base origin/main -- pytest -q
 
 Change    6 units, 22 changed lines in 4 files
 Baseline  214 tests passed, 2 stable head runs
@@ -302,17 +323,17 @@ Baseline  214 tests passed, 2 stable head runs
 held      2 units    8 lines   repeated assertion witnesses
 inert     1 unit     3 lines   same syntax tree
 loose     2 units    9 lines   every test passes without them
-unjudged  1 unit     2 lines   not code
+unjudged  1 unit     2 lines   unsupported file
 
 Read these first
   loose     billing/refund.py:88-90   all 214 tests pass
   loose     billing/retry.py:12-17    all 214 tests pass
-  unjudged  settings.toml:4           not code</pre>
+  unjudged  settings.toml:4           unsupported file</pre>
           <p class="under">Illustrative reading-list layout. The current CLI emits JSON and a compact terminal summary.</p>
         </div>
         <div>
-          <h3>What the agent is told</h3>
-<pre class="term"><span class="c"># AGENTS.md</span>
+          <h3 id="agent-instructions-title">What the agent is told</h3>
+<pre class="term" tabindex="0" role="region" aria-labelledby="agent-instructions-title"><span class="c"># AGENTS.md</span>
 Before opening a pull request,
 run ephorate check.
 
@@ -331,9 +352,9 @@ to change a verdict.</pre>
 
   <section class="band" id="related">
     <div class="wrap">
-      <h2 class="title">Built on known techniques</h2>
+      <h2 class="title" id="related-title">Built on known techniques</h2>
       <p class="intro">Ephorate is not the only tool in this area, and the trial at its centre is decades old. Here is how it sits next to what you may already run.</p>
-      <div class="scroll">
+      <div class="scroll" tabindex="0" role="region" aria-labelledby="related-title">
         <table class="grid">
           <thead><tr><th scope="col">Kind of tool</th><th scope="col">What it does</th><th scope="col">What Ephorate does instead</th></tr></thead>
           <tbody>
@@ -375,7 +396,7 @@ to change a verdict.</pre>
   <section class="band" id="status">
     <div class="wrap">
       <h2 class="title">Where it stands</h2>
-      <p class="intro">M1 is implemented and tested on generated local fixtures. It has not been publicly released. M2 needs approved repositories and will measure usefulness before further development.</p>
+      <p class="intro">M1 is implemented and tested on generated local fixtures. The package has not been released. M2 needs approved repositories and will measure usefulness before further development.</p>
       <ul class="status">
         <li><div><strong>Engine</strong><p>Python/pytest trials, judge-file reporting, budgets, fail-on handling and versioned JSON. Local fixture validation recorded; remote CI unobserved.</p></div><span class="state now">Built</span></li>
         <li><div><strong>Replay on real pull requests</strong><p>Run it on merged agent-written changes, audit the verdicts by hand, publish the numbers, then decide.</p></div><span class="state">Planned</span></li>
@@ -407,8 +428,8 @@ to change a verdict.</pre>
     <h2>The first real numbers will come from merged agent pull requests.</h2>
     <p>Before anything is polished, the engine gets replayed on real changes and the verdicts are audited by hand. The method and the results will be in the repository, whichever way they come out.</p>
     <div class="actions">
-      <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
-      <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/main/PROJECT_PLAN.md">Read the plan</a>
+      <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate/tree/implementation/removal-check-m1">View on GitHub</a>
+      <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/implementation/removal-check-m1/PROJECT_PLAN.md">Read the plan</a>
     </div>
   </div>
 </div>
@@ -416,7 +437,7 @@ to change a verdict.</pre>
   <div class="wrap">
     <span>Ephorate</span>
     <span>Questions: <a href="https://github.com/thedhinakarr/ephorate/issues">open an issue</a></span>
-    <a href="https://github.com/thedhinakarr/ephorate">github.com/thedhinakarr/ephorate</a>
+    <a href="https://github.com/thedhinakarr/ephorate/tree/implementation/removal-check-m1">github.com/thedhinakarr/ephorate</a>
   </div>
 </footer>
 
@@ -439,6 +460,7 @@ to change a verdict.</pre>
     units.forEach(function (u) {
       u.className = 'unit';
       u.querySelector('.verdict').textContent = 'not checked';
+      u.querySelector('.unit-code').open = true;
     });
     setLeft(total);
   }
@@ -447,6 +469,7 @@ to change a verdict.</pre>
     var v = u.dataset.v;
     u.className = 'unit is-' + v;
     u.querySelector('.verdict').textContent = labels[v];
+    u.querySelector('.unit-code').open = v !== 'held' && v !== 'inert';
     if (v === 'held' || v === 'inert') { setLeft(left - Number(u.dataset.n)); }
   }
 
@@ -470,6 +493,7 @@ to change a verdict.</pre>
 
   nAll.textContent = String(total);
   button.addEventListener('click', run);
+  button.disabled = false;
   timers.push(setTimeout(run, still ? 0 : 700));
 })();
 </script>

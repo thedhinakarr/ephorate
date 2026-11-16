@@ -34,3 +34,9 @@ The owner subsequently assigned M1 implementation explicitly. The earlier planni
 - Unstable head controls clear earlier behavioral verdicts. Origin checks cover only expected modules visible at in-process checkpoints, including namespace parents; unimported modules do not get invented origin evidence.
 - Output retains a validated directory descriptor, checks directory identity, writes an exclusive temporary file and publishes without overwrite. CLI finalization uses a separate POSIX deadline so a blocked stdout pipe cannot ignore the output allowance.
 - Validation uses generated local repositories and isolated Python environments. CI is configured for both supported operating systems; only actual local results are recorded. No external replay or public performance claim follows fixture success.
+
+## 2026-11-16 — GitHub Pages publication
+
+The owner explicitly authorized GitHub Pages after assigning the M1 branch push. Publish the reviewed static `index.html` and an empty `.nojekyll` on a dedicated `gh-pages` branch, with Pages serving its root and HTTPS enforced. Keep engine files, documentation and the supplied ZIP out of the site artifact. The default `github.io/ephorate/` address needs no domain purchase or DNS change. Source and plan links target `implementation/removal-check-m1` while `main` still contains the previous direction.
+
+Native HTML disclosures retain access to folded example code without JavaScript. Named, focusable overflow regions support keyboard scrolling; dark sections use contrasting focus outlines. The disabled-by-default demo button and static fallback make the illustrative results explicit when scripts cannot run. This website publication does not release the Python package or authorize M2 replay.
