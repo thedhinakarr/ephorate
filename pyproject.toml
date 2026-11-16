@@ -1,0 +1,33 @@
+[project]
+name = "ephorate"
+version = "0.1.0a1"
+description = "Local evidence from bounded change-removal trials"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11,<3.16"
+dependencies = []
+
+[project.scripts]
+ephorate = "ephorate.cli:main"
+
+[build-system]
+requires = ["uv_build==0.13.8"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest==9.2.0", "ruff==0.17.5", "mypy==2.4.1"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"

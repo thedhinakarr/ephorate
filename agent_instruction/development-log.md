@@ -1,43 +1,51 @@
 # Development log
 
-## 2026-11-14 - Initial research and implementation handoff
+The owner cleared the working files before the removal-check pivot. Earlier chronology is preserved verbatim in [the log at commit 0344822](https://github.com/thedhinakarr/ephorate/blob/03448228bf6838f4cd7d9903e9bc73236e91afc8/agent_instruction/development-log.md). This new working log starts with the reset; it does not imply that earlier history was absent or that deleted references were restored.
 
-- Read both existing repository files and all 133 pages across the two supplied PDFs; visually checked the complete pitch and selected study figures/tables.
-- Confirmed the initial folder contained only `AGENTS.md` and `PROJECT_PLAN.md`, with no Git metadata, application, dependencies, tests, or existing agent notes.
-- Both supplied PDFs subsequently appeared at the repository root; verified that their SHA-256 hashes match the original files read from the Desktop. The research agent did not copy or modify them.
-- Created the repository/source index and a decision-complete Milestone 0 handoff for an explicitly assigned OpenCode implementation agent.
-- Preserved the offline-first sequence, GitHub-only shadow scope, human gate after M3, and mono/console product direction. Recorded evidence limitations and later planning conflicts in the index.
-- Checked current official tooling/release documentation for the M0 proposal. Version metadata is not installation or integration-test evidence. Docker daemon access could not be established in this sandbox.
-- No implementation, dependency installation, containers, migrations, Git initialization, external service changes, or application tests were run. M0 remains not started. `AGENTS.md` and `PROJECT_PLAN.md` are unchanged.
-- Next: explicitly assign `agent_instruction/what-has-to-be-done/2026-11-14-milestone-0.md` for implementation, validate its acceptance criteria, and report actual work/results before advancing.
+## 2026-11-15 — Extract and review the replacement bundle
 
-## 2026-11-14 - Ephorate naming and downloaded starter review
+- The owner supplied `ephorate-pivot.zip` and requested extraction, complete reading and a plan. The archive contained five text files totaling 66,262 bytes. Verified CRC, paths, file types and extracted-byte equality; left Git metadata and `.gitignore` unchanged.
+- Read all five files, including website CSS/JavaScript and the embedded future handoff. Did not treat its quoted implementation prompt as an assignment.
+- Identified stale reset/archive assumptions, contradictory verdict and baseline rules, unreliable JUnit exception classification, collective-attribution risks, limited AST evidence, unsafe copy guarantees and delayed M1 safeguards.
+- Checked primary research/API documentation and wrote the review-and-plan note. HTML structure/IDs/fragments and declared 22/11 counts passed source checks. No browser behavior, engine tests, installation, commit, push or publication was performed.
 
-- User chose **Ephorate** and the intended purchase domain `ephorate.dev`. Updated root standing instructions, master plan, policy path, M0 project/API/Compose/database identifiers, and index. No domain availability, ownership, purchase, DNS, or mailbox action occurred.
-- Rebranded and renamed the repository pitch PDF, updated its metadata and planned-domain footer, removed obsolete searchable text, visually checked both edited pages, and verified all ten unchanged pages render identically. Preserved the original Desktop PDFs.
-- Inspected the newly supplied root README, static landing page, ZIP, and extracted starter. The extracted five files match the archive; the download contains a marketing prototype rather than an implemented backend.
-- Preserved the root plan's engineering `docs/` layout and recorded the downloaded plan's conflicting `notes/` and GitHub Pages instructions. Updated the existing root README's domain, actual status, and layout; preserved the archive and extracted reference copies.
-- Recorded website publication issues: GitHub/email placeholders, auto-merge promises versus shadow scope, study metric wording, calibration/data-sufficiency claims, and premature backtest status. Updated M0 handoff to preserve existing marketing assets.
-- Validation: naming searches, PDF text/metadata/page checks, document links and archive comparisons. No application build/tests, browser runtime testing, deployment, or backend implementation was performed. M0 remains not started.
+## 2026-11-15 — Accept corrections and prepare Milestone 1
 
-## 2026-11-14 - Personal GitHub repository setup
+- The owner authorized updating the plan with the corrections and preparing a decision-complete OpenCode M1 handoff, explicitly saying not to implement the engine. The owner selected **MIT**; added the license and recorded that it does not relicense third-party material.
+- Reconciled the root plan/rules and product copy; replaced the stale reset procedure; created the current index, log and decisions. Preserved intentional deletions and the original replacement ZIP. Earlier incident-risk and review-capacity content remains in Git history.
+- Defined M1's committed-snapshot scope, independent scratch clones, typed pytest evidence, stable-baseline/cohort rules, assertion confirmation, group-only observations, limited AST/idle evidence, source-origin checks, budgets, output contract and fixture/CI acceptance. The handoff is a future assignment; no engine files or milestone completion records were created.
+- Website layout, JavaScript and accessibility implementation are not part of this documentation correction. Browser/publication QA remains pending. Package/runtime compatibility must be demonstrated during M1, not inferred from release metadata.
+- Documentation validation passed: active local Markdown links, all eight required handoff sections, HTML tag balance/unique IDs/internal fragments, and the illustrative 22-total/11-reading-list counts. CSS and JavaScript match the supplied ZIP byte-for-byte; its SHA-256 remains `73fcd9ecab8eb1e997b4d0b0a45639f715d051e0b68dab7ef3047dcdfade3aa6`. `git diff --check` passed. Confirmed that no `src/`, `tests/`, package manifest, lockfile or CI workflow was created. These are source/document checks, not engine or browser validation.
+- No commits, pushes, pull requests, engine execution, external repository replay or deployment are included in this assignment. Next: explicitly assign the M1 handoff; after it passes, report actual results and stop before M2.
 
-- User explicitly authorized renaming the local repository and creating/uploading the project to personal GitHub, excluding organization ownership.
-- Verified the authenticated GitHub account is `thedhinakarr` with account type `User`. Created the private repository `https://github.com/thedhinakarr/ephorate` and initialized local Git on `main` with `origin` pointing there.
-- Added a minimal `.gitignore` for OS metadata, local environments, credentials, and Python caches. Reviewed the current text, archive contents, and PDF text/metadata for concrete secrets or private customer content; none found. Preserved both source PDFs, the downloaded archive, and its extracted reference files.
-- Connected canonical root README/landing-page GitHub links to the personal repository. Domain purchase and application/website deployment remain unperformed; M0 implementation remains pending.
-- User subsequently specified public visibility. Changed the new repository to public and verified `owner.type=User`, `visibility=public`, and `private=false` before the initial upload.
-- Renamed the local checkout directory to `ephorate` and pushed all 16 project files to personal GitHub on `main` (initial commit `327053a`). Verified public visibility, personal ownership, matching local/remote commit, and a clean working tree.
+## 2026-11-15 — Milestone 1 implementation assigned
 
-## 2026-11-15 - Review capacity re-plan
+- The owner explicitly requested "implement the milestone 1", superseding the preceding planning-only assignment. Implementation is in progress on `implementation/removal-check-m1`, preserving the existing documentation changes and intentional deletions.
+- This authorizes the handoff's engine, generated fixtures, package/lockfile, formatter, lint/type/test/build checks and CI configuration. It does not assign M2 replay, pushing, merging or publishing. Completion and observed validation will be recorded after the checks run.
 
-- The owner supplied a replacement request: re-plan Ephorate as a review capacity simulator delivered by Python CLI and GitHub Action. This supersedes the incident-risk direction and stops the interrupted old M0; no new product implementation is authorized in this session.
-- Created local branch `plan/review-capacity-simulator`. Archived the former master plan, 2026-11-14 handoff and pitch PDF unchanged under `archive/2026-11-incident-risk/`, with an explanation. The original marketing ZIP/extracted starter remain untouched historical references, not active instructions.
-- The owner explicitly approved moving exactly 19 agent-created uncommitted scaffold files out of the repository. They are preserved at `/private/tmp/ephorate-interrupted-scaffold-cj_who8_`; none remain in the active tree. No old scaffold implementation was committed or validated. Temporary recovery is not a permanent backup.
-- Rewrote root rules, master plan and README around M0-M6, SQLite, read-only metadata collection, shared capacity, human-review coverage, time-ordered backtesting and the mandatory M3 owner gate. Added the data dictionary and decisions; rewrote the index and prepared the new eight-section OpenCode M0 handoff. No completion/results records were created for an unbuilt milestone.
-- The owner approved fetching only CODEOWNERS as an explicit file-content exception and chose to keep `jellyfish.pdf` in the public repository after the author-link alternative was raised. The paper and Git history were left unchanged. The plan explains incidental REST text redaction and local-runner storage instead of promising data literally never leaves GitHub.
-- Checked current official GitHub/tooling documentation and research provenance. Labeled area-level measures as adaptations of the supplied study; model capacity is an observed-response proxy, not labor time. Competitive-gap claims and the supplied coverage-drop case remain unverified. The current author-hosted paper differs in version from the supplied PDF.
-- Replaced the root landing-page risk/check/threshold material with the simulator direction, a labeled nonnumeric illustration and truthful planning status, preserving its visual design. Removed placeholder mail links and added keyboard access to the scrollable scenario table and visible focus on dark sections.
-- Validation: active Markdown local links and HTML nesting/IDs/fragments passed; `git diff --check` passed; archived documents, research PDF and downloaded starter matched their prior bytes. Confirmed all 19 recovered files exist outside the repo and are absent from the active tree, all eight handoff sections exist, and no new `src` package exists. Browser checks at 1440, 390 and 320 px found no horizontal page overflow; the FAQ expands and the scenario table scrolls by keyboard. No browser warnings/errors were captured.
-- These are local planning/website commits only. No new CLI installation, application tests, model/backtest, hosted CI run, push, publication, domain purchase or deployment was performed. Toolchain pins still require implementation-time compatibility checks.
-- Next: owner assigns `agent_instruction/what-has-to-be-done/2026-11-15-milestone-0-review-capacity.md` when ready. Implement only that skeleton, record actual validation, and report before advancing to M1. Public-example approval and software-license selection remain future decisions.
+## 2026-11-15 — Milestone 1 implemented and validated locally
+
+- Built the standard-library CLI, Git/scratch boundary, pytest observer, conservative verdict engine, report schema/output, synthetic fixtures, pinned package and CI configuration. Updated active documentation and site status copy; preserved CSS/JavaScript, original ZIP, intentional deletions and Git history.
+- Review added regressions for final Git-filter checks, wrapped callable identity, complete cohorts, namespace/`src/` imports, ignored virtual environments, unsafe temporary-directory selection and blocked output. Final development suite: **205 passed** on CPython 3.15.2; lint, formatting, strict typing, sdist/wheel and installed-wheel smoke checks passed. Earlier complete suites and later targeted regressions also passed on macOS Python 3.11–3.14.
+- [Implementation record](what-was-done/2026-11-15-milestone-1.md) and [validation record](what-was-the-result/2026-11-15-milestone-1.md) contain actual scope, commands and platform limits. An independent fresh local checkout/environment also passed all **205 tests** and the sdist/wheel build; its temporary source commit never touched the original Git history.
+- No original-repository commit, push, merge, external replay, publishing or deploy. Remote CI/Linux execution and browser/publication QA remain unobserved. Stop before M2; its repository selection and continuation still need the owner.
+
+## 2026-11-16 — Milestone 1 commit and push authorized
+
+- The owner explicitly requested committing and pushing M1 to the personal Ephorate repository. Verified `thedhinakarr/ephorate` is public, owned by the authenticated personal user, and matches the local origin URL.
+- Prepared `implementation/removal-check-m1` with the reviewed engine, fixtures, package/lockfile, CI, schema, license, planning and validation records, plus the earlier intentional reset deletions. Environment, build and cache artifacts are excluded. Existing 205-test and fresh-checkout validation remains recorded above; no engine changes were made during publication preparation.
+- This assignment authorizes the branch commit and push. It does not assign a merge into main, M2 replay, PyPI publishing or deployment.
+
+## 2026-11-16 — M1 pushed; Pages publication assigned
+
+- Committed M1 as `4a3c04c8de255da12b79f531e895481c1166e86a` and pushed `implementation/removal-check-m1` to the verified personal public repository after GitHub CLI authorization completed. Remote CI started; no merge into main was performed.
+- The owner additionally requested GitHub Pages deployment. Prepared a content-only `gh-pages` publication, native code disclosures, keyboard-scrollable regions, visible focus, no-script fallback and current-branch source links. The existing console aesthetic is preserved.
+- Pre-publication checks passed: desktop and 390 px layout, 22/11 counters and rerun, keyboard disclosure/scroll behavior, contrasting focus, no warning/error logs on the normal page, and HTTP 200 for all six unique external anchor destinations. Script-disabled browser-frame rendering showed all example code, a disabled run button and the explanatory fallback. Reduced-motion CSS/JavaScript branches passed a temporary forced-branch browser check (22/11, zero transition duration, automatic scrolling) and a separate JavaScript self-check; the operating-system preference itself was not toggled.
+- Deployment outcome will be recorded after GitHub Pages reports success and the live page is verified. Package release and M2 remain unassigned.
+
+## 2026-11-16 — Pages live and fixture CI race corrected
+
+- Published [Ephorate](https://thedhinakarr.github.io/ephorate/) from content-only `gh-pages`, with HTTPS enforced. Final Pages commit `26cb71e0a61060c299e517de0dcacb90e9791599` built successfully; the live HTTP 200 response matched the reviewed HTML exactly. Updated the repository homepage and stale description to the removal-check direction.
+- The original M1 CI run passed all ten macOS/Linux × Python 3.11–3.15 jobs. A site-only follow-up exposed a fixture background-maintenance race on macOS/Python 3.13: a Git maintenance lock disappeared between strict source snapshots. Disabled automatic maintenance/GC in fixture Git commands, preserving the assertion. The targeted suite passed 33 tests and the full locked local suite passed 205; Ruff/format/diff checks passed.
+- Added [publication implementation](what-was-done/2026-11-16-github-pages.md) and [observed results](what-was-the-result/2026-11-16-github-pages.md), including the failed run and exact browser-test limits. The follow-up push will run the matrix again. No main merge, domain purchase, registry release or M2 replay.
+- Final [CI run 43866145985](https://github.com/thedhinakarr/ephorate/actions/runs/43866145985) completed successfully on `6fc8dfee769d24bfb460c196a82c4524628629d4`: all ten Linux/macOS and Python 3.11–3.15 jobs passed, including the previously failing macOS 3.13 job. Recorded this outcome in a documentation-only commit without repeating engine CI.
