@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ephorate: review capacity simulator</title>
-<meta name="description" content="Find out where code review will break as your agents write more code, and what would fix it. Ephorate is a planned review capacity simulator for GitHub teams.">
+<title>Ephorate: every changed line answers to a test, or to you</title>
+<meta name="description" content="Ephorate is a local removal-check tool. It reruns tests with pieces of a change reverted and reports assertion witnesses, undetected removals and uncertainty.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B2430'/%3E%3Cg fill='%23EEF0EC'%3E%3Crect x='5' y='8' width='3' height='16'/%3E%3Crect x='10' y='8' width='3' height='16'/%3E%3Crect x='15' y='8' width='3' height='16'/%3E%3Crect x='20' y='8' width='3' height='16'/%3E%3C/g%3E%3Crect x='25' y='8' width='3' height='16' fill='%23C8554D'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,23 +25,11 @@
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--marble);
-    color: var(--iron);
-    font-family: var(--text);
-    font-size: 17px;
-    line-height: 1.55;
-    -webkit-font-smoothing: antialiased;
-  }
+  body { margin: 0; background: var(--marble); color: var(--iron); font-family: var(--text); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
-  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible, .scroll:focus-visible {
-    outline: 3px solid var(--aegean);
-    outline-offset: 3px;
-  }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--aegean); outline-offset: 3px; }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--edge); }
 
-  /* header */
   .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 22px; padding-bottom: 22px; }
   .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-family: var(--display); font-size: 22px; font-weight: 500; }
   .mark { display: flex; gap: 3px; height: 20px; }
@@ -52,47 +40,51 @@
   .nav a:hover { color: var(--iron); text-decoration: underline; text-underline-offset: 4px; }
   @media (max-width: 720px) { .nav a.opt { display: none; } }
 
-  /* buttons */
-  .btn { display: inline-block; padding: 13px 22px; border: 1.5px solid var(--iron); border-radius: 4px; font-weight: 600; font-size: 16px; text-decoration: none; }
+  .btn { display: inline-block; padding: 13px 22px; border: 1.5px solid var(--iron); border-radius: 4px; font: 600 16px var(--text); text-decoration: none; background: transparent; color: var(--iron); cursor: pointer; }
   .btn-solid { background: var(--iron); color: var(--marble); }
   .btn-solid:hover { background: #2B3848; }
   .btn-line:hover { background: var(--panel); }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
-  /* hero */
-  .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 72px); align-items: center; padding-top: clamp(32px, 6vw, 72px); padding-bottom: clamp(56px, 8vw, 104px); }
-  .hero h1 { font-family: var(--display); font-weight: 500; font-size: clamp(2.5rem, 5.4vw, 4.4rem); line-height: 1.04; letter-spacing: -0.02em; margin: 0 0 28px; }
-  .hero p.lead { font-size: clamp(1.05rem, 1.5vw, 1.22rem); color: var(--soft); max-width: 34em; margin: 0 0 32px; }
-  .hero .stage { font-size: 15px; color: var(--soft); margin: 20px 0 0; }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: start; padding-top: clamp(32px, 6vw, 72px); padding-bottom: clamp(56px, 8vw, 104px); }
+  .hero > div { min-width: 0; }
+  .hero h1 { font-family: var(--display); font-weight: 500; font-size: clamp(2.4rem, 5vw, 4.1rem); line-height: 1.05; letter-spacing: -0.02em; margin: clamp(0px, 3vw, 40px) 0 28px; }
+  .hero p.lead { font-size: clamp(1.05rem, 1.5vw, 1.22rem); color: var(--soft); max-width: 33em; margin: 0 0 32px; }
+  .hero .stage { font-size: 15px; color: var(--soft); margin: 20px 0 0; max-width: 34em; }
   @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
 
-  /* instrument */
-  .instrument { background: var(--panel); border: 1.5px solid var(--iron); padding: clamp(18px, 2.4vw, 28px); }
-  .instrument h2 { font-family: var(--text); font-size: 15px; font-weight: 600; margin: 0 0 14px; }
-  .area-map { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: 14px; }
-  .area-map li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--stone); }
-  .area-map span { color: var(--soft); text-align: right; }
-  .review-pool { border: 1.5px solid var(--aegean); padding: 16px; margin-top: 16px; }
-  .review-pool strong { color: var(--aegean); }
-  .review-pool p { margin: 6px 0 0; color: var(--soft); font-size: 15px; }
-  .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid var(--stone); margin-top: 18px; padding-top: 16px; }
-  .readout b { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(1.25rem, 3.4vw, 2rem); line-height: 1.2; }
+  .instrument { background: var(--panel); border: 1.5px solid var(--iron); padding: clamp(16px, 2.2vw, 24px); }
+  .instrument-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .instrument h2 { font-family: var(--text); font-size: 15px; font-weight: 600; margin: 0; }
+  .instrument .btn { padding: 7px 14px; font-size: 14px; white-space: nowrap; flex: none; }
+  .unit { border-top: 1px solid var(--stone); padding: 10px 0 10px 12px; border-left: 3px solid transparent; }
+  .unit-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .loc { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .verdict { flex: none; font-size: 13px; font-weight: 600; padding: 1px 8px; border: 1.5px solid var(--stone); color: var(--soft); white-space: nowrap; }
+  .unit pre { margin: 8px 0 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; transition: opacity 160ms; }
+  .unit pre .del { color: var(--soft); }
+  .unit .why { display: none; margin: 4px 0 0; font-size: 14px; color: var(--soft); }
+  .unit .why code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .unit.is-trying pre { opacity: 0.3; text-decoration: line-through; }
+  .unit.is-held .why, .unit.is-inert .why, .unit.is-loose .why, .unit.is-unjudged .why { display: block; }
+  .unit.is-held pre, .unit.is-inert pre { display: none; }
+  .unit.is-held .verdict { border-color: var(--aegean); color: var(--aegean); }
+  .unit.is-loose, .unit.is-unjudged { border-left-color: var(--crimson); }
+  .unit.is-loose .verdict, .unit.is-unjudged .verdict { border-color: var(--crimson); color: var(--crimson); }
+  .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1.5px solid var(--iron); padding-top: 16px; }
+  .readout b { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 3.4vw, 2.7rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .readout span { display: block; font-size: 14px; color: var(--soft); margin-top: 6px; }
-  .readout .waiting b { color: var(--crimson); }
-  .readout .coverage b { color: var(--aegean); }
-  .instrument .fine { font-size: 14px; color: var(--soft); margin: 16px 0 0; }
+  .readout .left b { color: var(--crimson); }
+  .instrument .fine { font-size: 14px; color: var(--soft); margin: 14px 0 0; }
 
-  /* sections */
   section.band { border-top: 1px solid var(--stone); padding: clamp(56px, 8vw, 104px) 0; }
   .band h2.title { font-family: var(--display); font-weight: 500; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.12; letter-spacing: -0.01em; margin: 0 0 20px; max-width: 20em; }
   .band p.intro { color: var(--soft); max-width: 38em; margin: 0 0 40px; font-size: 1.08rem; }
-
-  /* problem */
   .figures { font-family: var(--display); font-weight: 400; font-size: clamp(1.6rem, 3.6vw, 3rem); line-height: 1.2; letter-spacing: -0.015em; margin: 0 0 32px; max-width: 22em; }
   .figures b { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .source { font-size: 14px; color: var(--soft); max-width: 46em; }
+  .source { font-size: 14px; color: var(--soft); max-width: 48em; margin: 0; }
+  .source + .source { margin-top: 8px; }
 
-  /* steps */
   ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
   ol.steps li { counter-increment: step; display: grid; grid-template-columns: 64px minmax(0, 300px) minmax(0, 1fr); gap: 8px 32px; padding: 24px 0; border-top: 1px solid var(--stone); }
   ol.steps li:last-child { border-bottom: 1px solid var(--stone); }
@@ -101,40 +93,29 @@
   ol.steps p { margin: 4px 0 0; color: var(--soft); max-width: 36em; }
   @media (max-width: 760px) { ol.steps li { grid-template-columns: 40px 1fr; } ol.steps p { grid-column: 2; } }
 
-  /* report preview */
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+  .scroll { overflow-x: auto; }
+  table.grid { width: 100%; min-width: 620px; border-collapse: collapse; }
+  table.grid th, table.grid td { text-align: left; vertical-align: top; padding: 16px 20px 16px 0; border-bottom: 1px solid var(--stone); }
+  table.grid thead th { font-weight: 600; border-bottom: 1.5px solid var(--iron); }
+  table.grid tbody th { font-weight: 600; width: 22%; }
+  table.grid tbody th code { font-family: var(--mono); font-size: 15px; }
+  table.grid td { color: var(--soft); }
+  table.grid td.ours { color: var(--iron); }
+
+  .pair { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+  .pair > div { min-width: 0; }
   @media (max-width: 860px) { .pair { grid-template-columns: 1fr; } }
-  .pair > div, .hero > div { min-width: 0; }
   .pair h3 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
-  .report { background: var(--panel); border: 1.5px solid var(--iron); }
-  .report header { padding: 16px 20px; border-bottom: 1px solid var(--stone); font-weight: 600; }
-  .report dl { margin: 0; padding: 6px 20px; }
-  .report dl div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--stone); }
-  .report dl div:last-child { border-bottom: 0; }
-  .report dt { color: var(--soft); }
-  .report dd { margin: 0; font-weight: 600; text-align: right; }
-  .report footer { padding: 14px 20px; border-top: 1px solid var(--stone); font-size: 14px; color: var(--soft); }
-  pre.outline { margin: 0; background: var(--iron); color: #DCE3E0; padding: 22px 24px; font-family: var(--mono); font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-  pre.outline .c { color: #93A3AD; }
+  pre.term { margin: 0; background: var(--iron); color: #DCE3E0; padding: 22px 24px; font-family: var(--mono); font-size: 13.5px; line-height: 1.7; overflow-x: auto; }
+  pre.term .c { color: #93A3AD; }
   .pair p.under { font-size: 15px; color: var(--soft); margin: 14px 0 0; }
 
-  /* table */
-  .scroll { overflow-x: auto; }
-  table.diff { width: 100%; min-width: 640px; border-collapse: collapse; }
-  table.diff th, table.diff td { text-align: left; vertical-align: top; padding: 16px 20px 16px 0; border-bottom: 1px solid var(--stone); }
-  table.diff thead th { font-weight: 600; border-bottom: 1.5px solid var(--iron); }
-  table.diff tbody th { font-weight: 600; width: 24%; }
-  table.diff td { color: var(--soft); width: 38%; }
-  table.diff td.ours { color: var(--iron); }
-
-  /* commitments */
   .commit { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 clamp(32px, 5vw, 72px); }
   .commit div { border-top: 1.5px solid var(--iron); padding: 20px 0 36px; }
   .commit h3 { font-size: 1.15rem; font-weight: 600; margin: 0 0 8px; }
   .commit p { margin: 0; color: var(--soft); max-width: 32em; }
   @media (max-width: 760px) { .commit { grid-template-columns: 1fr; } }
 
-  /* status */
   ul.status { list-style: none; margin: 0; padding: 0; max-width: 760px; }
   ul.status li { display: flex; justify-content: space-between; gap: 24px; padding: 16px 0; border-top: 1px solid var(--stone); }
   ul.status li:last-child { border-bottom: 1px solid var(--stone); }
@@ -142,7 +123,6 @@
   ul.status .state.now { border-color: var(--aegean); color: var(--aegean); }
   ul.status p { margin: 2px 0 0; color: var(--soft); font-size: 15px; }
 
-  /* faq */
   .faq { max-width: 760px; }
   .faq details { border-top: 1px solid var(--stone); }
   .faq details:last-child { border-bottom: 1px solid var(--stone); }
@@ -152,22 +132,21 @@
   .faq details[open] summary::after { content: "\2212"; }
   .faq details p { margin: 0 0 20px; color: var(--soft); max-width: 40em; }
 
-  /* closing */
   .closing { background: var(--iron); color: var(--marble); }
   .closing .wrap { padding-top: clamp(56px, 8vw, 96px); padding-bottom: clamp(56px, 8vw, 96px); }
-  .closing h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.1; margin: 0 0 16px; max-width: 16em; }
+  .closing h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.1; margin: 0 0 16px; max-width: 17em; }
   .closing p { color: #B9C3C8; max-width: 36em; margin: 0 0 28px; }
-  .closing .btn { border-color: var(--marble); }
+  .closing .btn { border-color: var(--marble); color: var(--marble); }
   .closing .btn-solid { background: var(--marble); color: var(--iron); }
   .closing .btn-solid:hover { background: #fff; }
   .closing .btn-line:hover { background: #2B3848; }
   footer.end { background: var(--iron); color: #B9C3C8; border-top: 1px solid #36424F; font-size: 14px; }
   footer.end .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; padding-top: 22px; padding-bottom: 28px; }
   footer.end a { color: #DCE3E0; }
-  .closing a:focus-visible, footer.end a:focus-visible { outline-color: var(--marble); }
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
+    .unit pre { transition: none; }
   }
 </style>
 </head>
@@ -180,7 +159,7 @@
   </a>
   <nav class="nav" aria-label="Main">
     <a class="opt" href="#how">How it works</a>
-    <a class="opt" href="#scenarios">What to test</a>
+    <a class="opt" href="#limits">Limits</a>
     <a class="opt" href="#status">Status</a>
     <a href="https://github.com/thedhinakarr/ephorate">GitHub</a>
   </nav>
@@ -190,123 +169,205 @@
 
   <div class="wrap hero">
     <div>
-      <h1>More code.<br>Who will review it?</h1>
-      <p class="lead">Find out where code review will break as your agents write more code, and what would fix it.</p>
+      <h1>Every changed line answers to a test, or to you.</h1>
+      <p class="lead">Ephorate reverts a change one piece at a time and reruns your tests. Reproduced assertion witnesses and removals the tests did not detect become evidence for the coding agent and the reviewer’s reading list.</p>
       <div class="actions">
-        <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">Follow development</a>
-        <a class="btn btn-line" href="#how">Explore the plan</a>
+        <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+        <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/main/PROJECT_PLAN.md">Read the plan</a>
       </div>
-      <p class="stage">A review capacity simulator, now at the planning stage. A Python CLI and GitHub Action are planned; useful forecasts must first pass a backtest.</p>
+      <p class="stage">The M1 engine is implemented and tested on local fixtures. Real-PR usefulness remains unmeasured; no public release yet. This panel is an illustration, not a live engine run.</p>
     </div>
 
-    <div class="instrument">
-      <h2>Illustration · one shared review pool</h2>
-      <ul class="area-map" aria-label="Example areas sending pull requests for review">
-        <li><strong>API</strong><span>PR arrivals →</span></li>
-        <li><strong>Platform</strong><span>PR arrivals →</span></li>
-        <li><strong>Documentation</strong><span>PR arrivals →</span></li>
-      </ul>
-      <div class="review-pool">
-        <strong>Shared reviewers</strong>
-        <p>The same people may review several areas. Moving work into one area can change the queue in another.</p>
+    <div class="instrument" aria-labelledby="demo-title">
+      <div class="instrument-head">
+        <h2 id="demo-title">An agent’s change, in six pieces</h2>
+        <button class="btn btn-line" id="run" type="button">Run the check</button>
       </div>
-      <div class="readout">
-        <div class="waiting"><b>Queue</b><span>How much work is waiting?</span></div>
-        <div class="coverage"><b>Coverage</b><span>How much gets a human review?</span></div>
+
+      <div id="units">
+        <div class="unit" data-v="held" data-n="6">
+          <div class="unit-head"><span class="loc">billing/refund.py 40–45</span><span class="verdict">not checked</span></div>
+<pre>+def refund_amount(capture, requested):
++    captured = capture.amount_minor
++    share = Decimal(requested) / Decimal(captured)
++    fee_back = (capture.fee_minor * share).quantize(
++        Decimal("1"), rounding=ROUND_HALF_UP)
++    return requested, int(fee_back)</pre>
+          <p class="why">Example assertion witness: <code>test_partial_capture_rounds_half_up</code>. Reproduced on removal; the head control passes.</p>
+        </div>
+        <div class="unit" data-v="inert" data-n="3">
+          <div class="unit-head"><span class="loc">billing/money.py 12–13</span><span class="verdict">not checked</span></div>
+<pre><span class="del">-# convert to minor units</span>
++# Convert a decimal amount to minor units.
++# Exponents come from the currency table.</pre>
+          <p class="why">The syntax tree is unchanged. This does not prove that source-text consumers behave the same.</p>
+        </div>
+        <div class="unit" data-v="held" data-n="2">
+          <div class="unit-head"><span class="loc">billing/refund.py 61–62</span><span class="verdict">not checked</span></div>
+<pre>+    if requested > capture.remaining_minor:
++        raise RefundExceedsCapture(capture.id)</pre>
+          <p class="why">Example assertion witness: <code>test_refund_capped_at_captured_amount</code>. Reproduced on removal; the head control passes.</p>
+        </div>
+        <div class="unit" data-v="loose" data-n="3">
+          <div class="unit-head"><span class="loc">billing/refund.py 88–90</span><span class="verdict">not checked</span></div>
+<pre>+    if capture.currency not in SUPPORTED:
++        log.warning("unsupported: %s", capture.currency)
++        return 0, 0</pre>
+          <p class="why">Removed it: all 214 tests still pass. No witness was observed; this is not permission to delete it.</p>
+        </div>
+        <div class="unit" data-v="loose" data-n="6">
+          <div class="unit-head"><span class="loc">billing/retry.py 12–17</span><span class="verdict">not checked</span></div>
+<pre>+def with_retry(fn, attempts=3, delay=0.2):
++    for n in range(attempts):
++        try:
++            return fn()
++        except TransientError:
++            time.sleep(delay * 2 ** n)</pre>
+          <p class="why">Removed it: all 214 tests still pass. No witness was observed; this is not permission to delete it.</p>
+        </div>
+        <div class="unit" data-v="unjudged" data-n="2">
+          <div class="unit-head"><span class="loc">settings.toml 4</span><span class="verdict">not checked</span></div>
+<pre><span class="del">-refund_window_days = 90</span>
++refund_window_days = 120</pre>
+          <p class="why">Unsupported configuration file. Ephorate cannot judge it; review is still needed.</p>
+        </div>
       </div>
-      <p class="fine">Concept illustration only. No repository data, measured capacity or forecast is shown.</p>
+
+      <div class="readout" aria-live="polite">
+        <div><b id="n-all">22</b><span>changed lines</span></div>
+        <div class="left"><b id="n-left">22</b><span>left to read</span></div>
+      </div>
+      <p class="fine">Illustration with made-up code. The reviewer still reads the tests. Folded units are not certified correct or safe.</p>
+      <noscript><p class="fine">Turn on JavaScript to watch the check run.</p></noscript>
     </div>
   </div>
 
   <section class="band" id="problem">
     <div class="wrap">
-      <p class="figures">After AI agent adoption, time from pull request submission to merge rose an estimated <b>56.1%</b> in one study.</p>
-      <p class="intro">Review capacity depends on who knows the code and where their time is already going. Ephorate’s plan is to test those constraints against a team’s own history before forecasting what more pull requests would do.</p>
-      <p class="source">Chen and Stratton, <a href="https://fion.ac/jellyfish.pdf">“Artificial Intelligence in the Firm: Bottlenecks in Software Production”</a> (Harvard University, 2026), a study of 655 firms. This is a study estimate, not a forecast for your team or evidence that Ephorate works.</p>
+      <p class="figures">With coding agents, firms opened <b>36%</b> more pull requests. Review took <b>56%</b> longer. Resolved issues rose about <b>14%</b>.</p>
+      <p class="intro">Writing got fast. Reading did not, and there is now more to read for each piece of finished work. Two habits of coding agents make it worse.</p>
+      <div class="commit">
+        <div><h3>Larger patches to inspect</h3><p>In a comparison of 28 automated repair approaches, each produced larger patches on average over its resolved SWE-bench Verified tasks than the corresponding developer patches. Size alone does not show which lines are unnecessary.</p></div>
+        <div><h3>Tests need scrutiny too</h3><p>A study of 86,156 agent-authored test-file patch diffs found weak or no explicit syntactic oracle signals in 80.2%. Modified files may still contain existing assertions, and implicit checks were not captured.</p></div>
+      </div>
+      <p class="source">First three figures: estimated effects of AI coding agents across 655 firms, from Chen and Stratton, <a href="https://fion.ac/jellyfish.pdf">“Artificial Intelligence in the Firm: Bottlenecks in Software Production”</a> (Harvard University, 2026). Review time means submission to merge; the issues estimate is marginally insignificant. These are not Ephorate results.</p>
+      <p class="source">Patch size: Luo et al., <a href="https://arxiv.org/html/2608.13292v1">“Refine After Generation”</a> (2026). Test signals: Banik, Chowdhury and Shamim, <a href="https://arxiv.org/html/2606.18168v1">“All Smoke, No Alarm”</a> (2026).</p>
     </div>
   </section>
 
   <section class="band" id="how">
     <div class="wrap">
-      <h2 class="title">How it is planned to work</h2>
-      <p class="intro">Read GitHub history, map the shared review capacity, and test the model against the past. Scenarios come after that credibility check.</p>
+      <h2 class="title">How the check works</h2>
+      <p class="intro">One question, asked of every piece of the change: which test fails if this is removed?</p>
       <ol class="steps">
-        <li><h3>Read the history</h3><p>Use a read-only token to collect pull request metadata, review events and changed paths, plus CODEOWNERS configuration where present. Detectable coding agents and dependency bots are counted separately.</p></li>
-        <li><h3>Map areas and reviewers</h3><p>Measure arrivals, prior familiarity and the distribution of reviewing across areas. Account for people who review in more than one area.</p></li>
-        <li><h3>Measure the queue</h3><p>Separate time waiting for a human response from elapsed time after that response, and report formal human review coverage alongside both.</p></li>
-        <li><h3>Test against the past</h3><p>Fit on earlier history and predict a later period. Compare waiting-time predictions with a simple baseline and report errors before treating scenarios as useful forecasts.</p></li>
-        <li><h3>Test a change</h3><p>If the backtest supports it, simulate more agent pull requests or a different review arrangement. Show assumptions, backtest error, queue effects and coverage together.</p></li>
+        <li><h3>Split the change</h3><p>Modified source files use diff-hunk units. New and deleted files use whole-file reversions, including file existence. Changed test files are left whole. They are the judges.</p></li>
+        <li><h3>Check the baseline</h3><p>Your test command runs twice on the full change. Both runs must pass consistently. Failure, changed outcomes or changed test collection stops the check; flaky tests are not ignored.</p></li>
+        <li><h3>Remove a unit, run the tests</h3><p>Bounded trials use independent temporary clones. An individual unit’s assertion witness must reproduce on removal, with a fresh passing head control. A combined diagnostic trial records a separate group observation.</p></li>
+        <li><h3>Give each unit a verdict</h3><p>Recorded evidence determines the individual verdict. Group observations never promote member verdicts. Unstable, inconclusive or group-only results stay unjudged.</p></li>
+        <li><h3>Report</h3><p>A summary in the terminal, a JSON file for agents and CI, and later one comment on the pull request.</p></li>
       </ol>
     </div>
   </section>
 
-  <section class="band" id="product">
+  <section class="band" id="verdicts">
     <div class="wrap">
-      <h2 class="title">A report you run and keep</h2>
-      <p class="intro">The planned delivery is a Python command-line tool and a GitHub Action. Run it locally or in your own CI, and keep its metadata store and reports there. No hosted service is planned.</p>
-      <div class="pair">
-        <div>
-          <h3>Planned report contents</h3>
-          <div class="report">
-            <header>Review capacity, by area</header>
-            <dl>
-              <div><dt>Demand</dt><dd>Pull request arrivals</dd></div>
-              <div><dt>Reviewing</dt><dd>Shared capacity and familiarity</dd></div>
-              <div><dt>Queue</dt><dd>Waiting time and backlog</dd></div>
-              <div><dt>Coverage</dt><dd>Recorded human reviews</dd></div>
-              <div><dt>Evidence</dt><dd>Backtest error and limitations</dd></div>
-            </dl>
-            <footer>Illustrative structure, not generated output. Real reports must trace every number to collected data.</footer>
-          </div>
-        </div>
-        <div>
-          <h3>Planned output files</h3>
-<pre class="outline"><span class="c"># Outputs, not a live product</span>
-
-HTML report
-  Observations, scenarios, limitations
-
-JSON report
-  Measurements and data provenance
-
-CODEOWNERS suggestion
-  Proposed changes for you to review</pre>
-          <p class="under">Ephorate will only write its own local data and report files. It will not edit CODEOWNERS, assign reviews or change repository settings.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="scenarios">
-    <div class="wrap">
-      <h2 class="title" id="scenarios-title">Test a fix before changing the workflow</h2>
-      <p class="intro">These are planned scenarios, conditional on a useful backtest. Moving work must account for the other areas that share the same reviewers.</p>
-      <div class="scroll" tabindex="0" role="region" aria-labelledby="scenarios-title">
-        <table class="diff">
-          <thead>
-            <tr><th scope="col">Scenario</th><th scope="col">What changes</th><th scope="col">What to inspect together</th></tr>
-          </thead>
+      <h2 class="title">Four verdicts</h2>
+      <p class="intro">Each unit gets exactly one. When Ephorate cannot tell, it says so.</p>
+      <div class="scroll">
+        <table class="grid">
+          <thead><tr><th scope="col">Verdict</th><th scope="col">What the trial showed</th><th scope="col">What to do with it</th></tr></thead>
           <tbody>
-            <tr><th scope="row">More agent output</th><td>Increase detected agent PR arrivals</td><td class="ours">Queue growth, waiting time and review coverage</td></tr>
-            <tr><th scope="row">Another qualified reviewer</th><td>Expand who can review an area</td><td class="ours">Assumed availability and effects on other areas</td></tr>
-            <tr><th scope="row">Different allocation</th><td>Move reviewing between people</td><td class="ours">Whether a queue shrinks or simply moves</td></tr>
-            <tr><th scope="row">Agent PR limits</th><td>Cap size or work in progress</td><td class="ours">Waiting work, deferred work and model assumptions</td></tr>
-            <tr><th scope="row">Review exemption</th><td>Remove a chosen class from human review</td><td class="ours">Lost coverage as well as shorter queues; no claim that exemption is safe</td></tr>
+            <tr><th scope="row"><code>held</code></th><td>An individual unit’s explicit assertion witness repeats on removal, with a fresh passing head control.</td><td class="ours">Read the witness. It establishes neither correctness nor dependence on every line in the unit.</td></tr>
+            <tr><th scope="row"><code>loose</code></th><td>A valid removal trial passes without a witness.</td><td class="ours">Investigate whether the code is needed and whether the tests should detect its removal.</td></tr>
+            <tr><th scope="row"><code>inert</code></th><td>The configured comparison finds the same syntax tree with or without the unit.</td><td class="ours">Consider source-text consumers and directives. AST equality is not behavior proof.</td></tr>
+            <tr><th scope="row"><code>unjudged</code></th><td>Unsupported file, unstable evidence, structural failure, timeout or exhausted budget.</td><td class="ours">Read it; no conclusion was established.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <section class="band" id="commitments">
+  <section class="band" id="product">
     <div class="wrap">
-      <h2 class="title">Understand the system. Don’t grade the people.</h2>
-      <p class="intro">Four rules shape the design.</p>
+      <h2 class="title">One command, and one line in the agent’s instructions</h2>
+      <p class="intro">Once the tool is built, the agent will investigate its findings before asking for review. The reviewer will get the same evidence.</p>
+      <div class="pair">
+        <div>
+          <h3>The check</h3>
+<pre class="term"><span class="c">$</span> ephorate check --base origin/main -- pytest -q
+
+Change    6 units, 22 changed lines in 4 files
+Baseline  214 tests passed, 2 stable head runs
+
+held      2 units    8 lines   repeated assertion witnesses
+inert     1 unit     3 lines   same syntax tree
+loose     2 units    9 lines   every test passes without them
+unjudged  1 unit     2 lines   not code
+
+Read these first
+  loose     billing/refund.py:88-90   all 214 tests pass
+  loose     billing/retry.py:12-17    all 214 tests pass
+  unjudged  settings.toml:4           not code</pre>
+          <p class="under">Illustrative reading-list layout. The current CLI emits JSON and a compact terminal summary.</p>
+        </div>
+        <div>
+          <h3>What the agent is told</h3>
+<pre class="term"><span class="c"># AGENTS.md</span>
+Before opening a pull request,
+run ephorate check.
+
+Investigate each loose unit.
+Justify deleting it, or add
+a meaningful test that detects
+its removal.
+
+Never edit an existing test
+to change a verdict.</pre>
+          <p class="under">An added or modified test is idle if it passes in a valid all-subject-reverted trial. Judge and other files remain; this is not independence from the whole change.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="related">
+    <div class="wrap">
+      <h2 class="title">Built on known techniques</h2>
+      <p class="intro">Ephorate is not the only tool in this area, and the trial at its centre is decades old. Here is how it sits next to what you may already run.</p>
+      <div class="scroll">
+        <table class="grid">
+          <thead><tr><th scope="col">Kind of tool</th><th scope="col">What it does</th><th scope="col">What Ephorate does instead</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Mutation testing</th><td>Makes small edits to code and scores how many your tests notice.</td><td class="ours">Removes whole pieces of one change and returns a reading list, not a score.</td></tr>
+            <tr><th scope="row">Patch minimizers</th><td>Delete the parts of a change that tests do not need.</td><td class="ours">Runs the same trial and stops at the report. Untested code that matters looks the same as code that does not.</td></tr>
+            <tr><th scope="row">AI reviewers</th><td>Interpret the diff and comment on it.</td><td class="ours">Parses changes and runs tests without a language model. A later GitHub comment summarizes trial evidence.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="limits">
+    <div class="wrap">
+      <h2 class="title">What a verdict does not tell you</h2>
+      <p class="intro">The check is narrow on purpose. These are its edges.</p>
       <div class="commit">
-        <div><h3>Read-only GitHub access</h3><p>The tool will collect history and suggest changes. It will never merge, approve, post reviews, change labels or edit repository settings.</p></div>
-        <div><h3>Area-level views first</h3><p>Reports will describe the distribution of work. Optional names will support reviewer planning, with one option to hide per-person detail. No individual rankings or performance grades.</p></div>
-        <div><h3>Metadata, not source code</h3><p>The collector will retain identifiers, timestamps, paths and counts. CODEOWNERS is the only repository configuration it will fetch; source code will not be stored or sent elsewhere. No language model is required.</p></div>
-        <div><h3>Errors beside forecasts</h3><p>The plan requires time-ordered backtests, a simple comparison baseline and disclosed assumptions. Unsupported scenarios must say so, and shorter waits must be shown alongside review coverage.</p></div>
+        <div><h3>Held is not correct</h3><p>It records an individually confirmed unit witness. Group observations cannot promote member verdicts. Whether an assertion checks the right requirement is still a person’s call.</p></div>
+        <div><h3>It needs tests that run in minutes</h3><p>Every unit costs at least part of a test run. A slow or failing suite rules the check out.</p></div>
+        <div><h3>Some changes cannot be judged</h3><p>Configuration, migrations, infrastructure and most interface work come back unjudged.</p></div>
+        <div><h3>A shallow test can hold a line</h3><p>An agent can write a weak test to clear a verdict. The tests still need reading.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="rules">
+    <div class="wrap">
+      <h2 class="title">Four rules in the design</h2>
+      <p class="intro">They keep the tool small enough to audit.</p>
+      <div class="commit">
+        <div><h3>No language model inside</h3><p>Verdicts follow recorded evidence. Test execution can still be unstable; repeated witnesses and head controls do not eliminate every source of flakiness.</p></div>
+        <div><h3>Your checkout is preserved</h3><p>Trials use independent temporary clones. These are not sandboxes: test commands and plugins must be trusted and can affect resources outside the clone.</p></div>
+        <div><h3>Tests are the judges</h3><p>Test files are never removed or changed, and a change that edits existing tests is flagged.</p></div>
+        <div><h3>A local engine</h3><p>The CLI itself makes no network calls or uploads. That does not constrain test subprocesses. The later GitHub Action will explicitly publish its documented comment and report artifacts.</p></div>
       </div>
     </div>
   </section>
@@ -314,12 +375,13 @@ CODEOWNERS suggestion
   <section class="band" id="status">
     <div class="wrap">
       <h2 class="title">Where it stands</h2>
-      <p class="intro">The review capacity product is not built. Today there is a plan, a research reference and this static page. The next assignment is the Python CLI skeleton.</p>
+      <p class="intro">M1 is implemented and tested on generated local fixtures. It has not been publicly released. M2 needs approved repositories and will measure usefulness before further development.</p>
       <ul class="status">
-        <li><div><strong>Plan, research and static concept</strong><p>The product direction and implementation handoff are documented.</p></div><span class="state now">Available</span></li>
-        <li><div><strong>CLI, collection and measurements</strong><p>A local metadata store, incremental GitHub history and area-level measurements.</p></div><span class="state">Planned</span></li>
-        <li><div><strong>Capacity model and backtest</strong><p>Compare predictions with later history on three public repositories. Stop for owner review before continuing.</p></div><span class="state">Credibility gate</span></li>
-        <li><div><strong>Scenarios, reports and GitHub Action</strong><p>Test workflow changes, produce HTML and JSON, and run in the team’s own CI.</p></div><span class="state">Gated</span></li>
+        <li><div><strong>Engine</strong><p>Python/pytest trials, judge-file reporting, budgets, fail-on handling and versioned JSON. Local fixture validation recorded; remote CI unobserved.</p></div><span class="state now">Built</span></li>
+        <li><div><strong>Replay on real pull requests</strong><p>Run it on merged agent-written changes, audit the verdicts by hand, publish the numbers, then decide.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Speed</strong><p>Run only the tests that reach a unit, in parallel, with caching.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Agent loop and GitHub Action</strong><p>Instructions for coding agents and one comment on each pull request.</p></div><span class="state">Planned</span></li>
+        <li><div><strong>Reviewer report and a second language</strong><p>A static page of the diff with held code folded away, then TypeScript.</p></div><span class="state">Planned</span></li>
       </ul>
     </div>
   </section>
@@ -328,12 +390,12 @@ CODEOWNERS suggestion
     <div class="wrap">
       <h2 class="title">Questions</h2>
       <div class="faq">
-        <details><summary>Can I run it today?</summary><p>No. The review capacity tool is planned, and no validated forecast is available. Follow the repository for the implementation and backtest results.</p></details>
-        <details><summary>What access is planned?</summary><p>A read-only GitHub token for pull request and review metadata, changed paths and CODEOWNERS configuration. The tool will write only its own metadata store and report files where you run it.</p></details>
-        <details><summary>Will it change our reviews or CODEOWNERS?</summary><p>No. It will only suggest changes for a person to consider. It will not modify reviews, ownership rules, labels or repository settings.</p></details>
-        <details><summary>Can it tell us who is slow?</summary><p>That is not its purpose. GitHub records elapsed workflow time, not a person’s review effort. The default reports will be about areas and queues, with no individual rankings. Seniority will never be inferred as fact.</p></details>
-        <details><summary>Will it identify every agent-written change?</summary><p>No. Known bot accounts and recognised co-author trailers can identify some agent use. Reports will state that detectable agent authorship undercounts actual use and will separate dependency bots.</p></details>
-        <details><summary>What if the forecast does not hold?</summary><p>The backtest is a gate. If the model cannot beat the simple baseline, the report must say so and scenario development stops for owner review. Any later forecast must show its backtest error and assumptions.</p></details>
+        <details><summary>Does Ephorate replace code review?</summary><p>No. It tells a reviewer where to start and gives a coding agent something to fix first. Someone still decides whether the tests ask for the right thing.</p></details>
+        <details><summary>Will it delete code?</summary><p>No. It reports. Where tests are thin, code that matters and code that does not look the same to it, so the decision stays with a person or with the agent that wrote the change.</p></details>
+        <details><summary>Is this mutation testing?</summary><p>It is a close relative. Ephorate reverts individual units from one change and reports confirmed assertion witnesses, undetected removals and uncertainty. A combined diagnostic trial records only a separate group observation.</p></details>
+        <details><summary>How long does a check take?</summary><p>Not measured yet. The first version runs the full suite for every unit. Later versions run only the tests that reach the unit.</p></details>
+        <details><summary>Which languages?</summary><p>Python with pytest first. TypeScript is planned after that.</p></details>
+        <details><summary>Where does the name come from?</summary><p>The ephorate was Sparta’s board of five elected overseers, who could call even the kings to account. It is pronounced EFF-er-it.</p></details>
       </div>
     </div>
   </section>
@@ -342,21 +404,74 @@ CODEOWNERS suggestion
 
 <div class="closing">
   <div class="wrap">
-    <h2>Test the forecast against the past first.</h2>
-    <p>The first question is whether review capacity can be forecast well enough to guide a change. Ephorate’s plan puts that test before scenarios or claims of saved time.</p>
+    <h2>The first real numbers will come from merged agent pull requests.</h2>
+    <p>Before anything is polished, the engine gets replayed on real changes and the verdicts are audited by hand. The method and the results will be in the repository, whichever way they come out.</p>
     <div class="actions">
-      <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">Follow development</a>
-      <a class="btn btn-line" href="#status">See where it stands</a>
+      <a class="btn btn-solid" href="https://github.com/thedhinakarr/ephorate">View on GitHub</a>
+      <a class="btn btn-line" href="https://github.com/thedhinakarr/ephorate/blob/main/PROJECT_PLAN.md">Read the plan</a>
     </div>
   </div>
 </div>
 <footer class="end">
   <div class="wrap">
     <span>Ephorate</span>
-    <span>Review capacity simulator · planning stage</span>
+    <span>Questions: <a href="https://github.com/thedhinakarr/ephorate/issues">open an issue</a></span>
     <a href="https://github.com/thedhinakarr/ephorate">github.com/thedhinakarr/ephorate</a>
   </div>
 </footer>
 
+<script>
+(function () {
+  var units = Array.prototype.slice.call(document.querySelectorAll('#units .unit'));
+  var button = document.getElementById('run');
+  var nAll = document.getElementById('n-all');
+  var nLeft = document.getElementById('n-left');
+  var labels = { held: 'held', inert: 'inert', loose: 'loose', unjudged: 'unjudged' };
+  var total = units.reduce(function (sum, u) { return sum + Number(u.dataset.n); }, 0);
+  var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var timers = [];
+  var left = total;
+
+  function setLeft(n) { left = n; nLeft.textContent = String(n); }
+
+  function clear() {
+    timers.forEach(clearTimeout); timers = [];
+    units.forEach(function (u) {
+      u.className = 'unit';
+      u.querySelector('.verdict').textContent = 'not checked';
+    });
+    setLeft(total);
+  }
+
+  function settle(u) {
+    var v = u.dataset.v;
+    u.className = 'unit is-' + v;
+    u.querySelector('.verdict').textContent = labels[v];
+    if (v === 'held' || v === 'inert') { setLeft(left - Number(u.dataset.n)); }
+  }
+
+  function run() {
+    clear();
+    button.disabled = true;
+    button.textContent = 'Running';
+    var step = still ? 0 : 620;
+    units.forEach(function (u, i) {
+      timers.push(setTimeout(function () {
+        u.className = 'unit is-trying';
+        u.querySelector('.verdict').textContent = 'removed, testing';
+      }, i * step));
+      timers.push(setTimeout(function () { settle(u); }, i * step + step * 0.75));
+    });
+    timers.push(setTimeout(function () {
+      button.disabled = false;
+      button.textContent = 'Run again';
+    }, units.length * step));
+  }
+
+  nAll.textContent = String(total);
+  button.addEventListener('click', run);
+  timers.push(setTimeout(run, still ? 0 : 700));
+})();
+</script>
 </body>
 </html>

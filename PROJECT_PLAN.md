@@ -1,207 +1,143 @@
-# Ephorate: review capacity simulator plan
+# Ephorate project plan
 
-Replanned 2026-11-15. This supersedes the incident-risk direction in `archive/2026-11-incident-risk/`. Read `AGENTS.md` first. This session produces planning documents and a landing-page revision only; new M0 needs a separate owner assignment.
+Reconciled 2026-11-15 after the owner accepted the removal-check review corrections. The owner has now explicitly assigned **Milestone 1 implementation**. Follow the M1 handoff and stop before M2. MIT was selected by the owner and recorded in `LICENSE`.
 
-## 1. Goal and credibility gate
+M1 is implemented. See the [implementation record](agent_instruction/what-was-done/2026-11-15-milestone-1.md) and [validation results](agent_instruction/what-was-the-result/2026-11-15-milestone-1.md): final fixture and fresh-checkout suites passed; remote CI/Linux execution remain unobserved. M2 has not started.
 
-**Find out where code review will break as your agents write more code, and what would fix it.**
+The previous directions were incident-risk scoring and then review-capacity simulation. The owner deleted their working files before supplying `ephorate-pivot.zip`; they remain in [Git history](https://github.com/thedhinakarr/ephorate/tree/03448228bf6838f4cd7d9903e9bc73236e91afc8), not an existing local archive. Do not restore deleted material or execute the ZIP's stale archive instructions.
 
-Build a Python CLI and GitHub Action that read one repository's GitHub history, measure area-level demand and shared review capacity, backtest forecasts, and simulate interventions. Outputs are local/CI HTML and JSON artifacts plus optional ownership suggestions. There is no hosted service.
+## 1. Purpose and scope
 
-The former direction needed unavailable customer incident data and competed with products identified in owner-supplied research. These observations explain the pivot; an exhaustive competitive gap has not been independently established. The new model's usefulness is unproven. M3 must test it before scenarios are built.
+Ephorate asks **which test fails when this part of a committed change is reverted?** It runs removal trials in independent scratch copies and produces a reading list for agents and reviewers. It reports evidence; it does not delete code, approve changes or merge pull requests.
 
-The supplied Chen/Stratton paper motivates the problem, not this product's accuracy. Its submission-to-merge increase is 56.1%; waiting/active-review effects use a commented subset and cannot be added to reconstruct the overall effect. Its firm/repository familiarity measure differs from the area-level adaptation below. The owner's 48%-to-21% coverage case is unsourced here; never use those figures as fitted parameters or verified marketing evidence.
+Passing tests cannot distinguish unnecessary code from necessary but untested code. A failing assertion shows a test's dependence on a trial, not correctness or safety. Identical syntax trees are a limited observation, not a proof of identical behavior. These limits are part of the product contract.
 
-## 2. Architecture and scope
+M1 is a serial Python/pytest engine on generated local fixtures. M2 measures usefulness, false findings and execution cost on owner-approved real PRs. Everything beyond M2 requires an explicit go/no-go. No language model, server, database, dashboard, telemetry, network dependency installation or hosted backend is planned.
 
-```text
-GitHub REST metadata + CODEOWNERS configuration
-              |
-       resumable collector
-              |
-    local SQLite metadata store
-              |
-   areas + as-of measurements
-              |
-   observed-throughput simulation
-              |
-  chronological backtest / owner gate
-              |
-  scenarios + system interventions
-              |
-  self-contained HTML + JSON + suggested ownership diff
-```
+## 2. Definitions
 
-| Choice | Decision |
+| Term | Contract |
 |---|---|
-| Runtime | Python; stdlib argparse and sqlite3 in M0 |
-| Package | One installable `src/ephorate/` package and `ephorate` command |
-| State | SQLite: transactional updates/checkpoints without a server |
-| Simulation | Small discrete-event engine using a priority queue; no closed-form queue formula as the forecast model |
-| Configuration | TOML; built-in tomllib; one versioned agent-identity rules file |
-| Reports | Self-contained HTML and versioned JSON; no remote report assets or telemetry |
-| Delivery | Local CLI, then GitHub Action with read permissions and artifact upload |
+| Change | Committed `HEAD` compared with a resolved base commit. Explicit `--base` names the base itself. Without it, use the merge base with locally available `refs/remotes/origin/HEAD`; missing/ambiguous references require explicit input, not fetching or guessing. |
+| Judge file | Tests discovered by pytest or protected test patterns, plus conftest, test-runner configuration and CI workflows. Judge status wins overlaps. Judge files are never reverted; additions, modifications, renames and deletions are reported in M1. |
+| Subject file | Supported regular Python source outside the judge and excluded/other categories. |
+| Other file | Unsupported language, configuration/data, migration, lockfile, generated or otherwise excluded content. Report it as unjudged; do not claim such content is inherently untestable. |
+| Unit | One zero-context hunk for a supported modified file; a whole-file reversion for a new/deleted file. File existence is part of a whole-file trial. Report base/head ranges and additions plus deletions. Rename detection is disabled initially; represent rename content as delete/add. |
+| Baseline | Two fresh clean-head runs with identical collected node IDs and stable outcomes, at least one passing test, and no errors/failures. Instability stops M1; no flaky-test exclusion. Two passes do not prove nonflakiness. |
+| Structural failure | Collection/load/syntax failure or one of the explicit structural exception classes in the handoff. It is not assertion evidence. Other unexpected runtime exceptions also fail closed. |
+| Witness | A baseline-passing test with a recognized call-phase assertion failure in the single-unit trial, reproduced by another removal trial with the same witness, followed by a passing clean-head control. Phase, exception and provenance are recorded. |
+| Group | The exact set of structurally failing units removed in M1's one combined diagnostic trial. Its outcome is collective evidence only; it does not promote individual verdicts or establish a smallest group. |
+| Idle-test evidence | An added or modified test still passes with all changed subject units reverted, while judges and other files remain at head. Other tests may fail recognized assertions, provided collection is complete and no structural/runtime/setup/teardown or integrity error invalidates the trial. This is not independence from the entire change or proof that a regression test should be deleted. |
+| Reading list | Loose/unjudged units, group-only evidence, idle candidates and changed judges. Tests remain reviewable even when units are held; inert/held content remains expandable. |
 
-No FastAPI, PostgreSQL, ClickHouse, Temporal, Terraform, AWS, incident connector, LLM, PR check writer, auto-merge, policy enforcement, or hosted dashboard. Adding hosting or an LLM requires an owner decision. Preserve the existing marketing design; it is separate from the future report.
+Every changed non-judge unit has exactly one verdict. File-level records also describe unsupported and judge changes so none disappear from totals.
 
-Planned paths are created only when their milestones need them:
-
-```text
-AGENTS.md, PROJECT_PLAN.md, README.md, index.html
-src/ephorate/             CLI, store, client, collector, measures, model, reports
-tests/                   unit/contract tests; sanitized metadata fixtures
-docs/                    decisions, dictionary, backtest report
-agent_instruction/       index, log, handoffs, actual implementation/results
-action.yml               introduced in M5
-archive/2026-11-incident-risk/  historical plan, handoff and pitch
-```
-
-The public personal repository is `thedhinakarr/ephorate`. `ephorate.dev` is the intended purchase domain, not a deployed endpoint. The root plan is authoritative; the nested `ephorate/` starter and ZIP remain historical references.
-
-## 3. Data and measurement contract
-
-[DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) defines timestamps, cohorts, formulas, provenance, and missing-value behavior. Use its words consistently in code and reports. All time is UTC. Default reporting covers the previous 12 calendar months ending at an explicit exclusive cutoff. Collect 90 additional warm-up days for the default qualification lookback, plus PRs already open at the reporting start. Warm-up does not enter headline totals.
-
-- **Area:** a named path set. Each changed file has one winning area: explicit configured rule, CODEOWNERS last match, then top-level directory/root fallback. A PR's changed-file shares across areas sum to one; touching multiple areas does not multiply its workload.
-- **Qualified reviewer:** at event time, a non-bot person with the configured count of distinct qualifying PRs in the preceding lookback. Defaults: 90 days and one PR. Qualification comes from merged authorship or submitted reviews touching the area, strictly before the measured event. CODEOWNERS alone does not qualify anyone.
-- **Familiarity:** review-event familiarity uses prior qualification and fractional area weights. Its random baseline assigns that reviewer uniformly to non-self-authored PRs opened in the same repository/month. This is an area-level adaptation, not the paper's firm-wide baseline. Same-month future candidates are for descriptive measurement only, never predictive features.
-- **Waiting:** opening, or first ready-for-review for an initially draft PR, to first eligible non-author human review/comment. Bots and unpublished pending reviews do not count. No response means censored, not zero.
-- **Active review time:** elapsed first-human-interaction-to-merge latency. It includes rework, idle time, and merge delay; it is not measured person-hours.
-- **Human review coverage:** share of merged PRs with a submitted formal human review before merge. Report comment-only engagement coverage separately. Missing records do not prove nobody inspected code.
-- **Effective review capacity:** observed response throughput under historical conditions, with one reviewer budget shared across areas. It is not independently measured maximum ability or attention.
-- **Utilization/review ceiling:** arrivals divided by modeled capacity, and the arrival rate where modeled utilization reaches one. Show gross and human-routed demand separately. Unbounded growth assumes persistent overload without bypass, abandonment, or adaptation; finite simulations report their actual horizon.
-- **Agent-authored:** detectable coding-agent account/trailer evidence. Dependency bots, no detected agent evidence, and incomplete/unknown attribution remain separate. One configurable identity file controls recognition. Dependency bots are excluded from headline human/agent comparisons but remain background demand when they use shared review capacity.
-
-The dictionary covers zero denominators, deleted actors, draft/reopen events, pending/dismissed reviews, partial collections, path overlap, multi-area accounting, seniority mappings, and historical snapshot limits. Default person detail is hidden; the single future `--people hide|show` option applies across all outputs.
-
-## 4. Collector and privacy boundary
-
-Use GitHub REST with `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2026-03-10`, and environment-only authentication. All GitHub operations are `GET`, through one mockable client. Never store credentials, raw response caches, PR titles/bodies, review/comment text, commit messages, patches, or diff hunks.
-
-Required endpoints cover repository metadata; updated-order PR listing and detail; issue timeline; submitted reviews; inline/conversation comments; changed paths; and PR commits for attribution. The endpoint/retained-field map is in the dictionary. Parse recognized co-author trailers transiently and retain classification/rule provenance, not message text or emails.
-
-REST metadata responses include incidental snippets/free text and offer no field-projection switch. Allowlist metadata immediately in memory; discard everything else before persistence, logs, error reporting, fixtures, or reports. Never request raw/blob/diff/patch/archive payloads.
-
-**Owner-approved CODEOWNERS exception:** inspect a pinned commit's tree metadata for the first existing CODEOWNERS path in `.github/`, root, then `docs/`. Validate that selected entry as a regular file; reject symlinks/submodules and files at or above 3 MB. An unsafe/unusable selected path triggers non-CODEOWNERS area fallbacks, not a lower-precedence CODEOWNERS file. Fetch only the verified path through the Contents API, without following download URLs. Retain parsed rules/provenance. Current ownership is not historical qualification; freeze the area taxonomy for evaluation and disclose final-diff approximations.
-
-Collection must paginate, deduplicate stable IDs, checkpoint sanitized state transactionally, honor `Retry-After`/rate-reset, retry transient failures with bounded backoff, and emit visible partial status when interrupted. Validate pagination and redirect destinations before forwarding credentials. Never advance a complete-run watermark while child collections are incomplete.
-
-PR listing has no `since`: use updated-descending discovery with overlap and conditional requests, restarting discovery safely after interruption rather than trusting old page positions. Incremental means new **and changed** records, not zero requests. Use ETags to avoid unchanged child downloads. Run a full reconciliation every seven successful daily incremental runs to address missed edits/deletions, and record that cost.
-
-Respect the 3,000-files and 250-commits PR endpoint caps. Mark oversized PRs incomplete; never label missing attribution human or derive exact area weights from partial files. Current/final PR files are not historical opening-time paths. Initial-queue and warm-up completeness are separate flags.
-
-The workflow token is repository-scoped and has a limited quota; an initial year may need several resumable CI runs. Own-repository workflows request only `contents: read` and `pull-requests: read`. Another private repository requires separately authorized read credentials. Data stays on the operator's machine/runner and in authorized GitHub artifacts, not an Ephorate backend. No literal promise that a local CLI's data remains inside a GitHub account.
-
-## 5. Model and interventions
-
-Use a discrete-event model of **first human response and elapsed completion**, not inferred labor time. Explain the model on one page in each report:
-
-1. Each PR is one global job with fractional area attribution, origin time, and actor class. Preserve open jobs at the train/test boundary.
-2. Bootstrap contiguous observed training-week blocks for arrivals and time-of-week response opportunities. An opportunity is one unique first-human-response token. If responders tie, assign the token to one of them using fixed-seed uniform selection; retain tie provenance. Never let fractional descriptive allocations release multiple jobs. Each person's weekly opportunity budget is shared across all areas. This is an observed-activity proxy for availability.
-3. Freeze the qualification snapshot and area taxonomy at forecast cutoff. At a review opportunity, choose the oldest queued PR touching an area for which that reviewer is qualified. This represents initial response, not comprehensive review sufficiency over every path; disclose cross-area limitations.
-4. While a job awaits response, model separate competing exits for merge without engagement and closure without merge. Estimate empirical age-dependent exit hazards from training risk sets, conditioned on pre-arrival pressure; censor still-open observations rather than treating them as exits. A terminal exit removes a queued job and records its outcome. A formal-review label alone never bypasses the first-response queue: comment-only engagement still consumes an opportunity.
-5. After a response, use empirical competing merge/closed-unmerged timing from training, retaining right-censored jobs. Post-response latency does not monopolize the reviewer. Fit formal-review probability by pre-arrival pressure and engagement/exit route. Reviews outside an open-ready interval can count toward formal coverage without ending this waiting measure: preserve that separate participation flag for carry-in jobs and model its observed frequency for new jobs, without creating response tokens. Thus formal coverage, first response, and terminal exits remain distinct. Use supported area distributions or a disclosed repository fallback. Pressure uses backlog/capacity knowable before arrival. These relationships are observational, not proof that pressure causes bypass; never import the unsourced case-study percentages.
-6. Report coverage, all arrivals, queue growth, terminal exits and unfinished work together. Add a sensitivity run holding bypass hazards and formal-review probabilities at their baseline-pressure values so reduced waits caused by bypass are visible. Exempted or deferred work never disappears from demand accounting.
-7. Use fixed seeds and repeated draws; report fitted window, draw count, model/config versions, support, assumptions, and held-out errors next to each supported forecast. Abstain for insufficient/out-of-support data.
-
-Before M3 fitting, its handoff must freeze training-only pressure/age bins, support and fallback rules, simulation horizon, seeds and aggregation. The dictionary defines M2's descriptive first-response throughput; M3 fits the empirical opportunity and exit processes from it and lifecycle records. No test-quarter tuning. Failure to identify a useful model is a failed credibility gate, not permission to invent availability or exclude poorly predicted areas.
-
-M4 configuration represents `qualify_reviewer`, `exempt_class`, `agent_wip_limit`, `agent_size_limit`, and `reallocate_review_capacity`. Eligibility alone adds no capacity. A person absent from response history requires explicit assumed capacity and an unsupported-new-person warning. The first size-limit version **defers** oversized work rather than pretending it is split; show that upstream backlog. WIP limits also preserve deferred demand. Exemptions show reduced coverage and imply no safety decision. Reallocation conserves budgets and shows cross-area spillovers.
-
-Rank system interventions by waiting/backlog effect only within stated coverage/assumption constraints. Show uncertainty and coverage changes alongside effects. Named candidates are opt-in and unranked; no person-performance score or leaderboard.
-
-## 6. Milestones
-
-### M0 - Skeleton
-
-Build only an installable CLI package, safe local SQLite initialization, tests, lint/type checks, wheel build, and CI. Follow the [new M0 handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-0-review-capacity.md). No collector, simulation, report, server, container, or Action distribution yet.
-
-Acceptance: locked install/lint/test/build pass from a clean clone; install the built wheel separately and invoke its CLI outside the checkout; help/version create no application stores, output or configuration; SQLite initialization is repeatable and rejects foreign/corrupt/unsupported stores without modification; CI needs no token or services. README shows actual commands. Report evidence to the owner before M1 assignment.
-
-### M1 - Collect history
-
-Implement one-repository collection for the explicit reporting/warm-up window and initial queue. Store only normalized metadata, observed cutoffs/SHAs, attribution rules, completeness, and transactional checkpoint/ETag state. Add only the HTTP client actually required, after current documentation checks.
-
-Acceptance:
-- Collect a reporting year for initial public target `pytest-dev/pytest`, retaining warm-up and initial-queue evidence or declaring them incomplete. If its current volume/API behavior is unsuitable, document evidence before proposing a replacement.
-- An interrupted/resumed fixture run produces the same normalized rows as uninterrupted collection, without duplicate or missing children.
-- A second run fetches new/changed records and conditionally validates unchanged data; no blanket year-long re-download.
-- Sanitized public fixtures and synthetic edge cases cover pagination, quotas, retries, redaction, pending reviews, endpoint caps, denied CODEOWNERS paths/symlinks, and partial status. Unit tests never contact GitHub.
-- Live validation records dates, counts, requests, quota/partial status and resume evidence, never raw responses. Report to the owner.
-
-### M2 - Map and measure
-
-Implement the dictionary: area rules, temporal qualification, familiarity/adapted baseline, waiting/elapsed latency, review-load concentration, formal/engagement coverage, observed response throughput, detectable authorship, and optional supplied seniority versus observed repository tenure.
-
-Acceptance:
-- All defined measures exist for the target with denominators, lineage, completeness, and no fabricated values.
-- Hand-check 30 sampled PRs covering drafts, human/agent/dependency-bot classes, multi-area changes, comment-only interactions, and censored/unreviewed cases. Record absent strata and expected/computed waiting, coverage and familiarity. No undisclosed LLM ground truth.
-- Tests prove future events cannot confer earlier qualification; area/reviewer accounting conserves totals; bot/author/pending events cannot falsely end waiting; missing responses remain censored; hiding people suppresses identities across outputs.
-- Explicitly report final-diff/current-ownership approximation and incomplete-history limits. Report to the owner.
-
-### M3 - Capacity model and backtest
-
-Implement discrete-event simulation with bootstrap-arrival forecasting as the primary gate. Fit on reporting months 1-9 and predict months 10-12, preserving the boundary queue and censoring. Truncate all training responses, merges, lifecycle/exit events and qualifications at the training cutoff; a training-origin PR resolved during the test period is censored during fitting. Replay using realized test arrivals is a separately labeled diagnostic, never the primary forecast result. The naive baseline predicts each area's next-quarter mean waiting as its preceding-quarter mean, using the same cohort definition and a disclosed repository fallback for zero prior support.
-
-The primary waiting estimand is mean elapsed waiting among first responses observed by the quarter-end cutoff, grouped by the PR's arrival week and fractional area. Apply the same quarter-relative observation horizon to the preceding-quarter baseline and simulated quarter. This is conditional on an observed response, not an uncensored population mean; report response, unengaged-exit and unresolved shares alongside it. Carry-in jobs affect capacity/backlog but are reported separately from new-arrival waiting. Freeze this cohort, censoring treatment and bin eligibility before fitting. Forecast and actual aggregates share week/area bins, not synthetic/real PR identities; a bin lacking simulated response support is unavailable, never silently omitted from the coverage report.
-
-Evaluate at least three public repositories. Candidate pool: `pytest-dev/pytest`, `django/django`, `astral-sh/ruff`, `pallets/flask`, `fastapi/fastapi`, `pandas-dev/pandas`. Select three using measured **training-period** PR volume and detectable agent-share spread; repository names do not establish usage. If the pool lacks meaningful spread, report this and propose expansion rather than falsely passing that criterion.
-
-Acceptance:
-- `docs/BACKTEST_REPORT.md` records each repository/window, context, model, assumptions, support, missingness and reproducibility inputs.
-- Compare weekly per-area mean waiting against the baseline on the same eligible test bins, weighted by actual observed-response PR equivalents. Report weighted MAE in hours per repository, per-area errors, median/p90 diagnostics, unresolved/censored shares, and a paired calendar-week block-bootstrap interval for the MAE difference. Keep counts and unavailable bins visible so censoring cannot improve appearances.
-- Separately report backlog error and formal-coverage error/calibration, with prior-quarter constant baselines. Do not accept short waits obtained by hiding bypass or unfinished PRs.
-- Freeze support/abstention rules before test inspection and report every area's outcome. Fixed seeds/data/config versions reproduce results within a recorded tolerance.
-- Honest failure is valid: if waiting does not beat the naive baseline, or coverage/backlog accuracy is inadequate, say so and propose changes. No guaranteed positive result.
-
-**Stop after M3 and report to the owner. Do not begin M4 without explicit go-ahead**, even after positive results. Evaluation is not approval to publish named public examples on the website.
-
-### M4 - Scenarios and fixes
-
-Add agent-arrival multipliers and the intervention types in section 5. Keep human, dependency-bot and unknown background demand explicit. Every scenario carries horizon, baseline comparison, held-out errors, uncertainty, coverage, deferred work and unsupported assumptions.
-
-Acceptance: each intervention is a small validated TOML entry. A fixed-seed synthetic test shows that a newly qualified reviewer **with spare capacity** reduces waiting in an overloaded area. Other tests prove qualification cannot duplicate capacity, reallocation conserves budgets, caps preserve deferred demand, and exemptions visibly change coverage. Rank interventions, never individuals. Report to the owner.
-
-### M5 - Report and GitHub Action
-
-Create a self-contained HTML report, versioned JSON, and separate suggested CODEOWNERS diff when needed. Reports make no external requests. `--people hide|show` defaults to `hide` and governs HTML, JSON, suggestions, logs and filenames; hidden-person mode suppresses named suggestions.
-
-Provide an Action usable in a few lines, with read-only GitHub permissions and allowlisted artifact upload. Document resumable sanitized-store caching, retention and access. Never upload a workspace glob, secrets, or raw responses. Partial collections remain visibly partial.
-
-Acceptance: this repo's CI runs the Action against a chosen public target and uploads HTML/JSON; a rerun resumes/reuses metadata; offline browser QA checks layout/accessibility; tests verify no external report requests, no identities in hide mode, traceable HTML/JSON agreement, and suggestion artifacts that leave CODEOWNERS unchanged. Report to the owner.
-
-### M6 - Public examples
-
-Prepare proposed targets and masked reports. **The owner approves the repository list before website publication.** Describe systems, not people. Remove/mask names, handles, named suggestions, identity-bearing URLs, filenames and metadata. Show model error/support prominently.
-
-Acceptance: approval recorded; masking independently checked; every published example links its window, definition/model versions, errors and limits; website links resolve and artifacts work offline. Public source data does not waive this review. Report to the owner.
-
-## 7. Validation and risk register
-
-Unit/contract tests cover parsing, SQLite safety, time ordering, qualification, conservation, partial data, censoring, simulation determinism and hidden identities. Use sanitized public metadata and small synthetic cases. Live runs are separately invoked validation, never unit-test dependencies. Every milestone records commands, exit statuses, counts and missing checks; no invented passes or completion records before work exists.
-
-| Risk | Response |
+| Verdict | Required evidence |
 |---|---|
-| Incumbents hold data and could add forecasting | Move quickly with inspectable methods; do not claim uniqueness or an open-source license before verification/selection |
-| Holidays, reorganizations, departures and irregular behavior break forecasts | Held-out evaluation, uncertainty/support limits, and invalidation after structural changes |
-| Open-source patterns do not transfer to companies | Describe repository context; do not generalize public results to companies |
-| Agent detection undercounts usage | Display rules, unknowns and undercount caveats with every share |
-| API quotas, pagination, edits and historical caps | Transactional incremental checkpoints, reconciliation, visible partial states and realistic multi-run backfills |
-| Metadata cannot identify true labor capacity | Effective-throughput language, conserved budgets, disclosed assumptions; no staffing/performance claims |
-| Pressure and coverage are confounded | Observational wording, separate coverage validation and fixed-coverage sensitivity |
-| Current paths/ownership leak future state | Frozen taxonomy, as-of qualification, observation provenance, disclosed historical approximation |
-| Sparse areas | Abstain instead of fabricated forecasts; expose support and fallback scope |
-| Public examples expose or grade people | Default hiding, no person rankings, owner-approved publication and masking checks |
+| `held` | An individually confirmed assertion witness, with no higher-priority uncertainty/error in its trial and successful head control. It refers to the unit, not every line within it. |
+| `loose` | The complete configured cohort executes with all baseline-passing tests passing and stable non-passing baseline outcomes. Reason: `full_suite_passed_without_unit`; no claim about executed lines before coverage exists. |
+| `inert` | Same parsed AST for head and head with that single unit reverted, for an eligible same-path regular Python modification with unchanged file metadata. Preserve docstrings; exclude directive/shebang/encoding edits and unsupported parses. No test trial is required for this limited classification. New/deleted files cannot take this fast path. |
+| `unjudged` | Unsupported input, non-assertion/structural error, missing or newly skipped tests, malformed/incomplete evidence, timeout, budget limit, failed application, failed confirmation, or group-only attribution. Record the exact reason. |
 
-## 8. Owner decisions and sources
+Uncertainty overrides assertions: collection/setup/teardown errors, missing/new/deselected cases, changed skips/xfails, malformed reports and unknown outcomes cannot produce held or loose. Stable skips/xfails provide no witnesses. A passing or failing combined group never silently changes a member's individual verdict. A failed executed head control invalidates previous test-derived held/loose results, stops further trials and yields an instability failure; insufficient budget to start a control leaves only its unconfirmed candidate unjudged. The M1 handoff defines precedence and the complete reason enums.
 
-Already decided: Ephorate name, intended `ephorate.dev` domain, personal/public GitHub, CODEOWNERS-only content exception, and retaining `jellyfish.pdf` publicly. Pending at their gates: new M0 assignment, M3 continuation, license, public-example list, and domain/hosting purchases. No history rewrite or PDF removal is authorized.
+## 3. Execution boundary
 
-Current source checks (2026-11-15):
+M1 checks a clean committed tree only: reject staged, unstaged and untracked changes. There is no dirty-tree override. This restriction applies to repositories checked by the future tool; it is not permission for implementation agents to discard the owner's present documentation changes.
 
-- Supplied study: repository `jellyfish.pdf`, 9 November version. [Authors' copy](https://fion.ac/jellyfish.pdf) now has a 14 November version; preserve attribution/version differences.
-- [REST versioning](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [PR endpoints/caps](https://docs.github.com/en/rest/pulls/pulls), [review comments](https://docs.github.com/en/rest/pulls/comments), [timeline](https://docs.github.com/en/rest/issues/timeline).
-- [CODEOWNERS precedence/size](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), [Contents behavior](https://docs.github.com/en/rest/repos/contents).
-- [REST best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api), [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api), [workflow-token scope](https://docs.github.com/en/actions/concepts/security/github_token).
+Inspect source Git state without optional locks. Resolve immutable SHAs before copying. All Git operations go through `src/ephorate/git.py`. Use independent temporary local clones with detached head, no hardlinks, alternates, shared object store, inherited hooks or fsmonitor. Linked worktrees share administration and are not the selected design. Allow local transport only, disable lazy fetching, and reject unsupported partial clones, submodules, symlinks and checkout filters/LFS. Missing objects fail instead of fetching or creating source refs.
 
-These establish interfaces and research definitions, not product efficacy. No new collector, capacity model, or end-to-end Action has run in this replanning session.
+Each baseline/trial starts from a fresh head snapshot. Apply reversals only there, never cumulatively between units. Test commands use argument arrays with `shell=False`, the same interpreter as Ephorate, and the pinned supported target pytest. M1 supports native synchronous pytest function/method items; unittest, doctest, subtest and custom/distributed runner protocols fail explicitly instead of being silently omitted. In particular, unittest setup/teardown can execute inside pytest's call phase, so it cannot share the simple assertion classifier. No shell pipelines, install wrappers, xdist, automatic dependency setup or reusable dirty trial directories. Verify that observed subject imports resolve inside scratch; reject an observed editable-install fallback to the original checkout. Origin validation covers modules visible in the pytest process at the observer checkpoints. It cannot establish where subprocesses or native extensions loaded code, or detect modules removed between checkpoints.
+
+These are trusted-code checks, not an OS security sandbox. Ephorate itself does not call the network or write the original checkout. Arbitrary test code can access absolute paths or the network; public replay requires isolated disposable execution without secrets. Handle timeouts and ordinary interrupts by terminating the owned process group before removing owned temporary files. SIGKILL/power loss can leave recoverable scratch data; do not promise impossible cleanup guarantees.
+
+## 4. Evidence, algorithm and outputs
+
+Use an explicitly loaded pytest observer through documented hooks to capture collected node IDs, file locations, phase outcomes and exception information. The standard JUnit writer supplies formatted failures, not reliable typed exceptions, so it is not the verdict authority. No globally auto-registered plugin, traceback-text classifier, or third-party runtime dependency is needed. The observer uses the target's installed pytest. JUnit interoperability can be added later when a runner needs it.
+
+The M1 sequence is fixed:
+
+1. Validate invocation, configuration, input Git state, local objects, supported checkout behavior and output destination.
+2. Resolve changed paths and provisional units; perform two fresh-head baselines and finalize judge classification from collection evidence.
+3. Reject invalid or unstable baseline evidence. Identify eligible AST-equivalent modifications.
+4. Run individual units in stable path/range order using the complete suite. Confirm candidate held results with a repeated removal and a fresh head control.
+5. Run at most one combined diagnostic trial for structural units; preserve individual unjudged results.
+6. Run the all-subject-reverted idle trial when complete reversal and budget permit. Dynamic/ambiguous test mapping and incomplete runs are unknown, never fabricated idle results.
+7. Emit a versioned report with full provenance and a reading list. No automatic source change follows a verdict.
+
+Defaults: one job; 50 subject units; analysis wall budget 900 seconds; each baseline at most 300 seconds; later trial timeout `max(30 seconds, 3 × slower baseline duration)`, bounded by remaining analysis budget. Final source verification gets a separate 30 seconds, then output/cleanup another 30 seconds; child termination may overrun the analysis budget. These allowances cannot schedule more tests. Budgets apply from M1; optimization waits until M3. The handoff fixes count/eligibility and partial-run semantics. Report every over-budget unit as unjudged; never silently truncate demand or evidence.
+
+JSON goes to stdout, human summary to stderr. An explicit JSON path must be outside the checked worktree and must not replace an existing file. No raw test output, captured locals, source content or absolute scratch paths in the normal JSON. Record schema/tool/interpreter/runner/config versions, SHAs, files/units, baseline, trial and witness evidence, groups, idle evidence, judges, budgets, completion status and timings. Stable IDs and sorted records make deterministic fixtures reproducible except for timing fields; uncontrolled tests/environments may differ.
+
+Exit codes: `0` for a completed check without a requested fail-on match; `1` for a completed check matching `--fail-on loose,unjudged,idle`; `2` for invocation/baseline/infrastructure failure; `130` for SIGINT and `143` for SIGTERM after attempted cleanup. A partial report can contain unjudged findings and must say why. The CLI and TOML key set, validation, adapter protocol, exact JSON records, reason codes and interrupt semantics are specified in the [M1 handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-1-removal-check.md).
+
+## 5. Stack and implementation boundaries
+
+One installed `src/ephorate` Python package, a console entry point and `python -m ephorate`; standard-library runtime. `argparse`, `subprocess`, `ast`, `tomllib` and JSON are sufficient. Pytest is an external requirement of the checked environment and a development dependency, not a general runtime dependency.
+
+Pins and the supported interpreter matrix are fixed in the M1 handoff and implemented in `pyproject.toml`, `uv.lock` and CI. The [M1 results record](agent_instruction/what-was-the-result/2026-11-15-milestone-1.md) distinguishes observed local checks from configured but unobserved remote CI. Version metadata alone is not runtime evidence.
+
+The product uses the owner's selected MIT license. This does not relicense third-party research or historical assets. PyPI name registration remains unverified; it is not a prerequisite for local fixture development. The site remains one root HTML file; engineering records live in `docs/`.
+
+## 6. Milestones and acceptance
+
+### M0 — Reconcile the reset and plan
+
+Record the actual cleared checkout and history; update rules, plan, copy, index/log and decisions; replace the stale reset handoff; prepare the decision-complete M1 assignment. Preserve the supplied ZIP and intentional deletions. Do not resurrect local archives, PDFs or old product scaffolds. No engine code.
+
+Acceptance for the planning portion: definitions agree across active documents, the new handoff is complete, MIT is recorded, links/structure pass inspection, and no engine/package/CI files exist. Marketing accessibility, browser demonstration and publication QA remain tracked work before site publication; they do not authorize implementation or block the separately assigned fixture engine. No completion record may imply those checks ran when they did not.
+
+### M1 — Engine on generated fixtures
+
+Implement only [the OpenCode handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-1-removal-check.md): package/checks/CI; safe committed snapshots; classification and reversible units; stable baselines; structured pytest evidence; conservative verdicts and witness controls; group observation; idle evidence; changed-judge reporting; bounded execution; terminal/JSON and minimal fail-on.
+
+Acceptance: all specified fixtures obtain their expected results; original worktree bytes, index and refs are preserved across success/failure/timeout/ordinary interrupt; the observer rejects out-of-scratch origins within its documented in-process checkpoint scope; deterministic normalized reports repeat; lint/types/tests/build and installed-wheel smoke checks pass outside the checkout. CI tests the supported interpreter/platform matrix without live network-dependent application tests. Report actual commands/results and stop before M2. No cache, parallelism, coverage selection, Action, HTML generator or language extension.
+
+### M2 — Replay and owner decision
+
+The owner approves the repository list and selection rule before cloning outside repositories. Target at least 30 merged PRs with detectable agent authorship across at least 10 Python/pytest repositories with offline suites. Use isolated disposable runners without secrets. Prespecify sampling and record every attempt, exclusion and failure.
+
+Audit at least 30 loose and 30 individually held units when available; disclose shortfalls. Separate unnecessary code, needed-but-untested code, false verdicts, shallow assertions and group-only findings. Report PR-level median/spread of changed-source-line shares, unjudged coverage, runtime/trial counts and confirmation failures. The denominator is additions plus deletions in supported changed source, with exclusions visible.
+
+Write `docs/REPLAY_REPORT.md` with methods, repository context, reproducibility, limitations and PR links rather than vendored code. **Stop for the owner's go/no-go**, regardless of favorable results. If useful findings are rare or unreliable, or execution cost is excessive, recommend revision or stopping rather than weakening the verdict contract.
+
+### M3 — Speed
+
+Add coverage-context selection, `--full`, parallel trials and cache. Missing/empty contexts fall back to full trials, including import/startup execution; absence of mapped tests is not proof of loose code. Cache identity includes interpreter, dependencies, configuration, observer version and environment inputs, not only tree/command. Compare selected/full verdicts across all fixtures and replay attempts; publish differences and keep unsupported cases conservative.
+
+### M4 — Precision
+
+Add finer definition-boundary units and bounded delta debugging. Describe tested minimality accurately; do not promise global smallest groups or infer individual necessity from collective witnesses. Add adversarial fixtures and rerun the replay set, reporting changes in verdicts. Judge-change reporting already exists in M1.
+
+### M5 — Agent loop
+
+Stabilize the existing versioned report and fail-on contract; supply small instructions for coding agents. Direct agents to inspect loose findings and delete or add meaningful tests, without altering existing tests to manufacture a verdict. Demonstrate on fixtures and record shallow-test gaming. No LLM is embedded in Ephorate.
+
+### M6 — GitHub Action
+
+Keep test execution separate from write credentials. Run untrusted PR code only in the restricted execution stage; an authorized reporting stage posts a sanitized comment/job summary and allowed artifacts. Never execute untrusted PR code with privileged PR-target credentials. Document fork behavior, permissions and authorized outputs. These GitHub outputs are distinct from the local engine's no-upload behavior.
+
+### M7–M9 — Reports, second language and release
+
+M7 adds self-contained offline HTML with expandable evidence and source; M8 adds TypeScript through a runner-specific evidence adapter and parser verified against its tests; M9 packages the accepted tool, demo and Action for an explicitly authorized release. PyPI publishing, website/domain publication and external release actions require owner assignments. The site uses measured replay results only after they exist.
+
+## 7. Risks and validation discipline
+
+- **Weak utility:** real changes may contain few useful loose/inert units; M2 tests this before integrations.
+- **False confidence:** error phases, missing tests, structural exceptions, collective witnesses and AST equality can be overstated; retain conservative reasons and exact evidence.
+- **Test nondeterminism and environment drift:** repeat controls reduce uncertainty but cannot eliminate it. Report instability rather than silently ignoring tests.
+- **Wrong source imports:** editable installs or import hooks can test the original source. Verify origin and fail closed on ambiguity.
+- **Execution cost:** serial full-suite runs and confirmation controls are expensive. Apply limits immediately and measure cost before optimizing.
+- **Untrusted test execution:** scratch copies are not sandboxing. Restrict M1 to trusted fixtures; isolate later public replay.
+- **Incomplete test classification:** protect discovered/custom tests, conftest and configuration; resolve ambiguity as unjudged.
+- **Marketing overstatement:** research supports investigation, not this product's effectiveness; keep the narrower claims and primary citations in the README/site.
+
+Tests use generated local repositories, not vendored projects. Record checks that ran and those that did not. Never create engine completion or replay results before they exist.
+
+## 8. Current sources and owner decisions
+
+Owner decisions: new removal-check direction, accepted corrections, MIT, then explicit M1 implementation after the planning handoff. Remaining gates: approval of M2 repositories and continuation; publishing/release actions. The owner's reset is intentional and Git history remains intact.
+
+Primary technical references: [Git status](https://git-scm.com/docs/git-status), [Git clone](https://git-scm.com/docs/git-clone), [Git worktree](https://git-scm.com/docs/git-worktree), [pytest reporting hooks](https://docs.pytest.org/en/stable/reference/reference.html#pytest.hookspec.pytest_runtest_makereport), [pytest JUnit writer](https://docs.pytest.org/en/stable/_modules/_pytest/junitxml.html), [pytest imports](https://docs.pytest.org/en/stable/explanation/pythonpath.html), [coverage contexts](https://coverage.readthedocs.io/en/latest/contexts.html), [Python AST](https://docs.python.org/3/library/ast.html).
+
+The [review note](agent_instruction/what-has-to-be-done/2026-11-15-removal-check-review-and-plan.md) preserves the original findings and research citations. This revised master plan and the M1 handoff supersede its tentative choices.

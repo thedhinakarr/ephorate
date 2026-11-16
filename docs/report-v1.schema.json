@@ -1,0 +1,1089 @@
+{
+  "$defs": {
+    "CaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "definition_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "path": {
+          "type": "string"
+        },
+        "phases": {
+          "items": {
+            "$ref": "#/$defs/PhaseResult"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "node_id",
+        "path",
+        "definition_name",
+        "definition_start",
+        "definition_end",
+        "outcome",
+        "phases"
+      ],
+      "type": "object"
+    },
+    "ChangeKind": {
+      "enum": [
+        "added",
+        "modified",
+        "unknown"
+      ]
+    },
+    "Collection": {
+      "additionalProperties": false,
+      "properties": {
+        "deselected": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "error": {
+          "type": "boolean"
+        },
+        "judge_files": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "selected": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "skipped_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "selected",
+        "deselected",
+        "judge_files",
+        "skipped_paths",
+        "error"
+      ],
+      "type": "object"
+    },
+    "ExceptionCategory": {
+      "enum": [
+        "none",
+        "assertion",
+        "structural",
+        "runtime",
+        "unknown"
+      ]
+    },
+    "FileChange": {
+      "additionalProperties": false,
+      "properties": {
+        "additions": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "base_blob": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "base_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "classification": {
+          "$ref": "#/$defs/FileClass"
+        },
+        "deletions": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "head_blob": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "head_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "A",
+            "D",
+            "M",
+            "T"
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "status",
+        "base_blob",
+        "head_blob",
+        "base_mode",
+        "head_mode",
+        "classification",
+        "reason",
+        "additions",
+        "deletions"
+      ],
+      "type": "object"
+    },
+    "FileClass": {
+      "enum": [
+        "judge",
+        "subject",
+        "other"
+      ]
+    },
+    "GroupResult": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_nodes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TrialStatus"
+        },
+        "trial_id": {
+          "type": "string"
+        },
+        "unit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "unit_ids",
+        "trial_id",
+        "status",
+        "assertion_nodes"
+      ],
+      "type": "object"
+    },
+    "IdleResult": {
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "$ref": "#/$defs/ChangeKind"
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/IdleStatus"
+        },
+        "trial_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "node_id",
+        "path",
+        "change",
+        "status",
+        "reason",
+        "trial_id"
+      ],
+      "type": "object"
+    },
+    "IdleStatus": {
+      "enum": [
+        "idle",
+        "not_idle",
+        "unknown"
+      ]
+    },
+    "Outcome": {
+      "enum": [
+        "passed",
+        "failed",
+        "skipped",
+        "xfailed",
+        "xpassed",
+        "unknown"
+      ]
+    },
+    "Phase": {
+      "enum": [
+        "setup",
+        "call",
+        "teardown"
+      ]
+    },
+    "PhaseOutcome": {
+      "enum": [
+        "passed",
+        "failed",
+        "skipped"
+      ]
+    },
+    "PhaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "exception_category": {
+          "$ref": "#/$defs/ExceptionCategory"
+        },
+        "exception_types": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/PhaseOutcome"
+        },
+        "was_xfail": {
+          "type": "boolean"
+        },
+        "when": {
+          "$ref": "#/$defs/Phase"
+        }
+      },
+      "required": [
+        "when",
+        "outcome",
+        "was_xfail",
+        "exception_category",
+        "exception_types"
+      ],
+      "type": "object"
+    },
+    "Reason": {
+      "enum": [
+        "confirmed_assertion",
+        "full_suite_passed_without_unit",
+        "ast_equivalent",
+        "judge_protected",
+        "unsupported_file",
+        "excluded_pattern",
+        "source_root_mismatch",
+        "unsupported_change",
+        "unsupported_module",
+        "ambiguous_judge",
+        "patch_failed",
+        "structural_failure",
+        "runtime_failure",
+        "phase_failure",
+        "cohort_mismatch",
+        "origin_violation",
+        "invalid_evidence",
+        "evidence_limit",
+        "unsupported_collection",
+        "unsupported_runner",
+        "runner_failure",
+        "timeout",
+        "budget_exhausted",
+        "unit_cap",
+        "confirmation_failed",
+        "unstable_control",
+        "baseline_failed",
+        "baseline_unstable",
+        "no_tests",
+        "configuration_error",
+        "unsafe_repository",
+        "missing_ref",
+        "missing_object",
+        "source_changed",
+        "infrastructure_failure",
+        "output_error",
+        "interrupted",
+        "run_aborted",
+        "mapping_ambiguous",
+        "no_passing_baseline",
+        "unsupported_subject_reversal",
+        "passed_without_subject_changes",
+        "assertion_without_subject_changes"
+      ]
+    },
+    "RunStatus": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "TrialPurpose": {
+      "enum": [
+        "baseline",
+        "single",
+        "repeat",
+        "control",
+        "group",
+        "idle"
+      ]
+    },
+    "TrialResult": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseResult"
+          },
+          "type": "array"
+        },
+        "collection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Collection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "purpose": {
+          "$ref": "#/$defs/TrialPurpose"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/TrialStatus"
+        },
+        "unit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "purpose",
+        "unit_ids",
+        "status",
+        "reason",
+        "exit_code",
+        "collection",
+        "cases"
+      ],
+      "type": "object"
+    },
+    "TrialStatus": {
+      "enum": [
+        "passed",
+        "assertion_failure",
+        "structural_failure",
+        "runtime_failure",
+        "phase_failure",
+        "cohort_mismatch",
+        "origin_violation",
+        "invalid_evidence",
+        "runner_failure",
+        "timeout",
+        "budget_exhausted",
+        "interrupted",
+        "patch_failed"
+      ]
+    },
+    "UnitKind": {
+      "enum": [
+        "hunk",
+        "add_file",
+        "delete_file",
+        "file"
+      ]
+    },
+    "UnitResult": {
+      "additionalProperties": false,
+      "properties": {
+        "additions": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "base_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "base_start": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "classification": {
+          "$ref": "#/$defs/FileClass"
+        },
+        "deletions": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "group_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "head_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "head_start": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/UnitKind"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        },
+        "trial_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "witnesses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "kind",
+        "ordinal",
+        "base_start",
+        "base_count",
+        "head_start",
+        "head_count",
+        "additions",
+        "deletions",
+        "classification",
+        "verdict",
+        "reason",
+        "witnesses",
+        "trial_ids",
+        "group_ids"
+      ],
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "held",
+        "loose",
+        "inert",
+        "unjudged"
+      ]
+    }
+  },
+  "$id": "https://github.com/thedhinakarr/ephorate/blob/main/docs/report-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Cross-reference existence, stable ordering, finite timing values and verdict evidence invariants are additionally enforced by report contract tests.",
+  "properties": {
+    "baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "excluded": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "node_id": {
+                "type": "string"
+              },
+              "outcome": {
+                "$ref": "#/$defs/Outcome"
+              }
+            },
+            "required": [
+              "node_id",
+              "outcome"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "passing": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "trial_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "trial_ids",
+        "passing",
+        "excluded"
+      ],
+      "type": "object"
+    },
+    "change": {
+      "additionalProperties": false,
+      "properties": {
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+          "type": "string"
+        },
+        "base_tree": {
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          },
+          "type": "array"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+          "type": "string"
+        },
+        "head_tree": {
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_sha",
+        "head_sha",
+        "base_tree",
+        "head_tree",
+        "files"
+      ],
+      "type": "object"
+    },
+    "config": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "budget_seconds": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "command_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "effective_config_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "fail_on": {
+          "items": {
+            "enum": [
+              "loose",
+              "unjudged",
+              "idle"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "invocation": {
+          "const": [
+            "<python>",
+            "-m",
+            "pytest"
+          ]
+        },
+        "judge_patterns": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "max_units": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_trial_timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "other_patterns": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "source_root": {
+          "enum": [
+            ".",
+            "src"
+          ]
+        },
+        "timeout_factor": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_root",
+        "judge_patterns",
+        "other_patterns",
+        "max_units",
+        "budget_seconds",
+        "baseline_timeout_seconds",
+        "min_trial_timeout_seconds",
+        "timeout_factor",
+        "fail_on",
+        "invocation",
+        "command_sha256",
+        "effective_config_sha256"
+      ],
+      "type": "object"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "subject_lines": {
+          "additionalProperties": false,
+          "properties": {
+            "held": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inert": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "loose": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unjudged": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "held",
+            "loose",
+            "inert",
+            "unjudged"
+          ],
+          "type": "object"
+        },
+        "units": {
+          "additionalProperties": false,
+          "properties": {
+            "held": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inert": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "loose": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unjudged": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "held",
+            "loose",
+            "inert",
+            "unjudged"
+          ],
+          "type": "object"
+        },
+        "unknown_line_unit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "units",
+        "subject_lines",
+        "unknown_line_unit_ids"
+      ],
+      "type": "object"
+    },
+    "environment": {
+      "additionalProperties": false,
+      "properties": {
+        "git_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "implementation": {
+          "const": "cpython"
+        },
+        "platform": {
+          "enum": [
+            "linux",
+            "macos"
+          ]
+        },
+        "plugins": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "version"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pytest_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "python_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "python_version",
+        "implementation",
+        "platform",
+        "git_version",
+        "pytest_version",
+        "plugins"
+      ],
+      "type": "object"
+    },
+    "groups": {
+      "items": {
+        "$ref": "#/$defs/GroupResult"
+      },
+      "type": "array"
+    },
+    "idle_tests": {
+      "items": {
+        "$ref": "#/$defs/IdleResult"
+      },
+      "type": "array"
+    },
+    "reading_list": {
+      "additionalProperties": false,
+      "properties": {
+        "group_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "idle_node_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "judge_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "unit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "unit_ids",
+        "group_ids",
+        "idle_node_ids",
+        "judge_paths"
+      ],
+      "type": "object"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "timings": {
+      "additionalProperties": false,
+      "properties": {
+        "total_s": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "trials": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "total_s",
+        "trials"
+      ],
+      "type": "object"
+    },
+    "tool": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "ephorate"
+        },
+        "version": {
+          "const": "0.1.0a1"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "type": "object"
+    },
+    "trials": {
+      "items": {
+        "$ref": "#/$defs/TrialResult"
+      },
+      "type": "array"
+    },
+    "units": {
+      "items": {
+        "$ref": "#/$defs/UnitResult"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tool",
+    "environment",
+    "change",
+    "config",
+    "status",
+    "reason",
+    "baseline",
+    "units",
+    "trials",
+    "groups",
+    "idle_tests",
+    "reading_list",
+    "counts",
+    "timings"
+  ],
+  "title": "Ephorate report version 1",
+  "type": "object"
+}
