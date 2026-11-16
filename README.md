@@ -6,7 +6,9 @@ Ephorate is a local tool that reverts a code change one piece at a time in a tem
 
 Repository: [thedhinakarr/ephorate](https://github.com/thedhinakarr/ephorate)
 
-> **Status:** Milestone 1 is implemented and validated on generated local fixtures. This is an unpublished alpha, not evidence of usefulness on real PRs. See the [implementation record](agent_instruction/what-was-done/2026-11-15-milestone-1.md) and [observed validation](agent_instruction/what-was-the-result/2026-11-15-milestone-1.md). Milestone 2 still needs owner-approved repositories.
+Website: [Ephorate on GitHub Pages](https://thedhinakarr.github.io/ephorate/). The current removal-check implementation is on [`implementation/removal-check-m1`](https://github.com/thedhinakarr/ephorate/tree/implementation/removal-check-m1); `main` still contains the previous direction.
+
+> **Status:** Milestone 1 is implemented and validated on generated fixtures. The Python package remains an unpublished alpha; fixture results do not establish usefulness on real PRs. See the [implementation record](agent_instruction/what-was-done/2026-11-15-milestone-1.md), [local validation](agent_instruction/what-was-the-result/2026-11-15-milestone-1.md) and [publication results](agent_instruction/what-was-the-result/2026-11-16-github-pages.md). Milestone 2 still needs owner-approved repositories.
 
 The owner has selected the [MIT license](LICENSE).
 
@@ -140,14 +142,14 @@ The removal trial itself goes back to delta debugging (Zeller, 1999) and to work
 
 | Part | State |
 |---|---|
-| Reconciled documents, site copy and M1 handoff | Complete; browser/publication QA remains separate |
+| Reconciled documents, site copy and M1 handoff | Complete; site published on GitHub Pages after browser checks |
 | Engine: units, bounded removal trials, verdicts (Python and pytest) | Implemented; local fixture validation recorded; no public release |
 | Replay on real agent pull requests, with a go or no-go decision | Planned |
 | Speed: test selection, parallel trials, caching | Planned |
 | Agent loop and GitHub Action | Planned |
 | Reviewer report, second language, release | Planned |
 
-[PROJECT_PLAN.md](PROJECT_PLAN.md) has the milestones. [AGENTS.md](AGENTS.md) has the standing rules. The [M1 handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-1-removal-check.md) remains the implementation contract. CI is configured for macOS/Linux × Python 3.11–3.15; remote CI and Linux execution have not been observed in this session. Work stops before M2 replay.
+[PROJECT_PLAN.md](PROJECT_PLAN.md) has the milestones. [AGENTS.md](AGENTS.md) has the standing rules. The [M1 handoff](agent_instruction/what-has-to-be-done/2026-11-15-milestone-1-removal-check.md) remains the implementation contract. CI runs on macOS/Linux × Python 3.11–3.15; observed outcomes are in the [publication results](agent_instruction/what-was-the-result/2026-11-16-github-pages.md). Work stops before M2 replay.
 
 ## Repository layout
 

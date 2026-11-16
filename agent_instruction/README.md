@@ -1,6 +1,6 @@
 # Ephorate agent index
 
-Updated 2026-11-15. Ephorate's Milestone 1 local removal-check engine is implemented. The owner explicitly assigned implementation after approving the planning handoff. See [what was done](what-was-done/2026-11-15-milestone-1.md) and [observed results](what-was-the-result/2026-11-15-milestone-1.md); stop before M2 replay.
+Updated 2026-11-16. Ephorate's Milestone 1 local removal-check engine is implemented and pushed to the personal repository on `implementation/removal-check-m1`. The [website is live](https://thedhinakarr.github.io/ephorate/) on GitHub Pages. See [what was done](what-was-done/2026-11-15-milestone-1.md), [local engine results](what-was-the-result/2026-11-15-milestone-1.md) and [publication results](what-was-the-result/2026-11-16-github-pages.md); stop before M2 replay.
 
 ## Start here
 
@@ -30,10 +30,10 @@ The owner intentionally cleared the previous working files. Prior plans, PDFs, a
 | Milestone | State |
 |---|---|
 | M0 documentation reconciliation | Plan/rules/copy and M1 assignment prepared; no engine work |
-| M1 Python/pytest engine on fixtures | Implemented; local validation recorded; remote CI unobserved |
+| M1 Python/pytest engine on fixtures | Implemented and pushed; local and remote CI outcomes recorded |
 | M2 real-PR replay | Owner approves repositories first; ends at an explicit go/no-go |
 | M3–M9 | Gated speed, precision, agent loop, Action, reports, second language and release |
 
-Website accessibility and browser/no-JavaScript validation remain required before publication. Source inspection is not browser evidence and does not establish an accepted release. The CLI, package, fixtures, schema and CI configuration now exist; no public release or remote CI run is implied.
+Website accessibility changes and browser checks were completed for the owner's explicit Pages deployment. The [publication record](what-was-done/2026-11-16-github-pages.md) describes the content-only `gh-pages` branch; the results record states the actual checks and their limits. The Python alpha package has not been released to a registry. `main` remains on the prior direction; no merge was assigned.
 
 Handoffs use the eight-section OpenCode format. Write `what-was-done/` and `what-was-the-result/` records only for actual implementation and checks. Keep the current log chronological; earlier entries are linked in Git because the owner removed their working copy. Do not log credentials, raw sensitive process output or private code.

@@ -33,7 +33,18 @@ def git(root: Path, *args: str) -> str:
         LC_ALL="C",
     )
     return subprocess.run(
-        ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", *args],
+        [
+            "git",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "maintenance.auto=false",
+            "-c",
+            "gc.auto=0",
+            *args,
+        ],
         cwd=root,
         env=env,
         check=True,
